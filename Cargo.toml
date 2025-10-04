@@ -13,6 +13,9 @@ authors = ["awolverp"]
 name = "rapidquery"
 crate-type = ["cdylib"]
 
+[features]
+optimize = []
+
 [profile.dev]
 lto = true
 panic = "unwind"
