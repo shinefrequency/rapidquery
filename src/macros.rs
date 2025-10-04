@@ -13,37 +13,45 @@ pub unsafe fn get_type_name<'a>(py: pyo3::Python<'a>, obj: *mut pyo3::ffi::PyObj
         let obj = unsafe { pyo3::types::PyType::from_borrowed_type_ptr(py, type_) };
 
         #[cfg(debug_assertions)]
-        let name = obj.name().unwrap();
+        let name = obj.fully_qualified_name().unwrap();
 
         #[cfg(not(debug_assertions))]
-        let name = obj.name().unwrap_unchecked();
+        let name = obj.fully_qualified_name().unwrap_unchecked();
 
         name.to_string_lossy().into_owned()
     }
 }
 
 /// Creates a new [`pyo3::exceptions::PyTypeError`]
-/// 
+///
 /// ```rust
 /// typeerror!(
 ///     "expected str, got {:?}",
 ///     py,
 ///     value.as_ptr(),
 /// )
+///
+/// typeerror!("type error description")
 /// ```
 #[macro_export]
 macro_rules! typeerror {
     (
         $message:literal,
+    ) => {
+        pyo3::PyErr::new::<pyo3::exceptions::PyTypeError, _>($message)
+    };
+
+    (
+        $message:literal,
         $py:expr,
-        $($ptr:expr,)+
+        $($ptr:expr),*
     ) => {
         pyo3::PyErr::new::<pyo3::exceptions::PyTypeError, _>(
             format!(
                 $message,
                 $(
                     unsafe { $crate::macros::get_type_name($py, $ptr) },
-                )+
+                )*
             )
         )
     };

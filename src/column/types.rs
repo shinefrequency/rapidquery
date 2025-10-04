@@ -46,7 +46,7 @@ macro_rules! impl_column_type {
                                 "'==' not supported between instances of {:?} and {:?}",
                                 slf.py(),
                                 slf.as_ptr(),
-                                other.as_ptr(),
+                                other.as_ptr()
                             )
                         )
                     } else {
@@ -61,7 +61,7 @@ macro_rules! impl_column_type {
                                 "'!=' not supported between instances of {:?} and {:?}",
                                 slf.py(),
                                 slf.as_ptr(),
-                                other.as_ptr(),
+                                other.as_ptr()
                             )
                         )
                     } else {
@@ -131,7 +131,7 @@ macro_rules! impl_column_type {
                                 "'==' not supported between instances of {:?} and {:?}",
                                 slf.py(),
                                 slf.as_ptr(),
-                                other.as_ptr(),
+                                other.as_ptr()
                             )
                         )?;
 
@@ -147,7 +147,7 @@ macro_rules! impl_column_type {
                                 "'!=' not supported between instances of {:?} and {:?}",
                                 slf.py(),
                                 slf.as_ptr(),
-                                other.as_ptr(),
+                                other.as_ptr()
                             )
                         )?;
 
@@ -236,7 +236,7 @@ macro_rules! impl_column_type {
                                 "'==' not supported between instances of {:?} and {:?}",
                                 slf.py(),
                                 slf.as_ptr(),
-                                other.as_ptr(),
+                                other.as_ptr()
                             )
                         )?;
 
@@ -251,7 +251,7 @@ macro_rules! impl_column_type {
                                 "'!=' not supported between instances of {:?} and {:?}",
                                 slf.py(),
                                 slf.as_ptr(),
-                                other.as_ptr(),
+                                other.as_ptr()
                             )
                         )?;
 
@@ -419,7 +419,7 @@ impl PyIntervalType {
                 "'==' not supported between instances of {:?} and {:?}",
                 slf.py(),
                 slf.as_ptr(),
-                other.as_ptr(),
+                other.as_ptr()
             )
         })?;
 
@@ -432,7 +432,7 @@ impl PyIntervalType {
                 "'==' not supported between instances of {:?} and {:?}",
                 slf.py(),
                 slf.as_ptr(),
-                other.as_ptr(),
+                other.as_ptr()
             )
         })?;
 
@@ -509,7 +509,7 @@ impl PyEnumType {
                 "'==' not supported between instances of {:?} and {:?}",
                 slf.py(),
                 slf.as_ptr(),
-                other.as_ptr(),
+                other.as_ptr()
             )
         })?;
 
@@ -522,7 +522,7 @@ impl PyEnumType {
                 "'==' not supported between instances of {:?} and {:?}",
                 slf.py(),
                 slf.as_ptr(),
-                other.as_ptr(),
+                other.as_ptr()
             )
         })?;
 
@@ -602,7 +602,7 @@ impl PyArrayType {
                 "'==' not supported between instances of {:?} and {:?}",
                 slf.py(),
                 slf.as_ptr(),
-                other.as_ptr(),
+                other.as_ptr()
             )
         })?;
 
@@ -630,7 +630,7 @@ impl PyArrayType {
                 "'==' not supported between instances of {:?} and {:?}",
                 slf.py(),
                 slf.as_ptr(),
-                other.as_ptr(),
+                other.as_ptr()
             )
         })?;
 

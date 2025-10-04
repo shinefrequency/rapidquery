@@ -5,6 +5,7 @@
 #[macro_use]
 mod macros;
 
+mod adaptation;
 mod column;
 mod typeref;
 
@@ -26,6 +27,9 @@ mod _lib {
         PyYearType,
     };
 
+    #[pymodule_export]
+    use super::adaptation::PyAdaptedValue;
+
     #[pymodule_init]
     fn init(m: &pyo3::Bound<'_, pyo3::types::PyModule>) -> pyo3::PyResult<()> {
         m.add("INTERVAL_YEAR", sea_query::PgInterval::Year as u8)?;
@@ -43,7 +47,7 @@ mod _lib {
         m.add("INTERVAL_MINUTE_TO_SECOND", sea_query::PgInterval::MinuteToSecond as u8)?;
 
         super::typeref::initialize_typeref(m.py());
-        
+
         Ok(())
     }
 }

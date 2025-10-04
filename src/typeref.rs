@@ -62,6 +62,7 @@ unsafe fn look_up_type_object(
 }
 
 #[cold]
+#[optimize(size)]
 fn _initialize_typeref(py: pyo3::Python) -> bool {
     unsafe {
         CHAR_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyCharType>(py);
