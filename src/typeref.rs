@@ -40,8 +40,11 @@ pub(crate) static mut INTERVAL_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::
 pub(crate) static mut ENUM_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut ARRAY_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 
-// Sential types
+// Other types
 pub(crate) static mut ASTERISK_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
+pub(crate) static mut ADAPTED_VALUE_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
+pub(crate) static mut COLUMN_REF_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
+pub(crate) static mut FUNCTION_CALL_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 
 // Python standard libraries types
 pub(crate) static mut STD_DECIMAL_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
@@ -112,6 +115,9 @@ fn _initialize_typeref(py: pyo3::Python) -> bool {
         ARRAY_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyArrayType>(py);
 
         ASTERISK_TYPE = get_type_object_for::<crate::common::PyAsteriskType>(py);
+        ADAPTED_VALUE_TYPE = get_type_object_for::<crate::adaptation::PyAdaptedValue>(py);
+        COLUMN_REF_TYPE = get_type_object_for::<crate::common::PyColumnRef>(py);
+        FUNCTION_CALL_TYPE = get_type_object_for::<crate::expression::PyFunctionCall>(py);
 
         STD_DECIMAL_TYPE = look_up_type_object(c"decimal", c"Decimal");
         STD_UUID_TYPE = look_up_type_object(c"uuid", c"UUID");

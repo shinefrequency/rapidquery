@@ -1,0 +1,188 @@
+use sea_query::QueryBuilder;
+
+#[pyo3::pyclass(module = "rapidquery._lib", name = "FunctionCall", frozen)]
+pub struct PyFunctionCall {
+    pub inner: parking_lot::Mutex<sea_query::FunctionCall>,
+}
+
+#[pyo3::pymethods]
+impl PyFunctionCall {
+    #[new]
+    #[pyo3(signature=(name))]
+    pub fn new(name: String) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::cust(sea_query::Alias::new(name))),
+        }
+    }
+
+    pub fn arg<'a>(slf: pyo3::PyRef<'a, Self>, arg: &pyo3::Bound<'a, super::expr::PyExpr>) -> pyo3::PyRef<'a, Self> {
+        let arg = arg.get().inner.lock().clone();
+
+        {
+            let mut lock = slf.inner.lock();
+            *lock = lock.clone().arg(arg);
+        }
+
+        slf
+    }
+
+    #[classmethod]
+    fn min(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::min(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn max(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::max(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn abs(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::abs(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn avg(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::avg(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn count(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::count(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn count_distinct(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::count_distinct(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn if_null(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        a: &pyo3::Bound<'_, super::expr::PyExpr>,
+        b: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::if_null(
+                a.get().inner.lock().clone(),
+                b.get().inner.lock().clone(),
+            )),
+        }
+    }
+
+    #[classmethod]
+    fn greatest(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, exprs: Vec<pyo3::Py<super::expr::PyExpr>>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::greatest(
+                exprs.into_iter().map(|x| x.get().inner.lock().clone()),
+            )),
+        }
+    }
+
+    #[classmethod]
+    fn least(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, exprs: Vec<pyo3::Py<super::expr::PyExpr>>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::least(
+                exprs.into_iter().map(|x| x.get().inner.lock().clone()),
+            )),
+        }
+    }
+
+    #[classmethod]
+    fn char_length(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::char_length(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn coalesce(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, exprs: Vec<pyo3::Py<super::expr::PyExpr>>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::coalesce(
+                exprs.into_iter().map(|x| x.get().inner.lock().clone()),
+            )),
+        }
+    }
+
+    #[classmethod]
+    fn lower(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::lower(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn upper(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::upper(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn bit_and(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::bit_and(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn bit_or(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::bit_or(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn random(_cls: &pyo3::Bound<'_, pyo3::types::PyType>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::random()),
+        }
+    }
+
+    #[classmethod]
+    fn round(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::round(expr.get().inner.lock().clone())),
+        }
+    }
+
+    #[classmethod]
+    fn md5(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::md5(expr.get().inner.lock().clone())),
+        }
+    }
+
+    fn to_sql(&self) -> String {
+        let mut sql = String::with_capacity(10);
+        let lock = self.inner.lock();
+
+        sea_query::PostgresQueryBuilder.prepare_function_name(lock.get_func(), &mut sql);
+        sea_query::PostgresQueryBuilder.prepare_function_arguments(&lock, &mut sql);
+        sql
+    }
+
+    fn __repr__(&self) -> String {
+        let mut sql = String::from("<FunctionCall ");
+        let lock = self.inner.lock();
+
+        sea_query::PostgresQueryBuilder.prepare_function_name(lock.get_func(), &mut sql);
+        sea_query::PostgresQueryBuilder.prepare_function_arguments(&lock, &mut sql);
+        sql + ">"
+    }
+}

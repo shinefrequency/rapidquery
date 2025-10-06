@@ -43,7 +43,7 @@ macro_rules! impl_column_type {
                     if !other.bind(slf.py()).is_exact_instance_of::<Self>() {
                         Err(
                             typeerror!(
-                                "'==' not supported between instances of {:?} and {:?}",
+                                "'==' not supported between instances of {} and {}",
                                 slf.py(),
                                 slf.as_ptr(),
                                 other.as_ptr()
@@ -58,7 +58,7 @@ macro_rules! impl_column_type {
                     if !other.bind(slf.py()).is_exact_instance_of::<Self>() {
                         Err(
                             typeerror!(
-                                "'!=' not supported between instances of {:?} and {:?}",
+                                "'!=' not supported between instances of {} and {}",
                                 slf.py(),
                                 slf.as_ptr(),
                                 other.as_ptr()
@@ -102,7 +102,7 @@ macro_rules! impl_column_type {
                 #[new]
                 #[pyo3(signature=(length=None))]
                 fn new(length: Option<u32>) -> (Self, PyColumnTypeMeta) {
-                    let value = length.unwrap_or(u32::MAX);
+                    let value = length.unwrap_or(0);
                     (
                         Self {
                             length: std::sync::atomic::AtomicU32::new(value),
@@ -114,12 +114,12 @@ macro_rules! impl_column_type {
                 #[getter]
                 fn length(&self) -> Option<u32> {
                     let length = self.length.load(std::sync::atomic::Ordering::Relaxed);
-                    if length == u32::MAX { None } else { Some(length) }
+                    if length == 0 { None } else { Some(length) }
                 }
 
                 #[setter]
                 fn set_length(&self, val: Option<u32>) {
-                    let new_val = val.unwrap_or(u32::MAX);
+                    let new_val = val.unwrap_or(0);
                     self.length.store(new_val, std::sync::atomic::Ordering::Relaxed);
                 }
 
@@ -128,7 +128,7 @@ macro_rules! impl_column_type {
                         .extract::<pyo3::PyRef<'_, Self>>(slf.py())
                         .map_err(
                             |_| typeerror!(
-                                "'==' not supported between instances of {:?} and {:?}",
+                                "'==' not supported between instances of {} and {}",
                                 slf.py(),
                                 slf.as_ptr(),
                                 other.as_ptr()
@@ -144,7 +144,7 @@ macro_rules! impl_column_type {
                         .extract::<pyo3::PyRef<'_, Self>>(slf.py())
                         .map_err(
                             |_| typeerror!(
-                                "'!=' not supported between instances of {:?} and {:?}",
+                                "'!=' not supported between instances of {} and {}",
                                 slf.py(),
                                 slf.as_ptr(),
                                 other.as_ptr()
@@ -188,8 +188,8 @@ macro_rules! impl_column_type {
             impl Default for $name {
                 fn default() -> Self {
                     Self {
-                        precision: std::sync::atomic::AtomicU32::new(u32::MAX),
-                        scale: std::sync::atomic::AtomicU32::new(u32::MAX),
+                        precision: std::sync::atomic::AtomicU32::new(0),
+                        scale: std::sync::atomic::AtomicU32::new(0),
                     }
                 }
             }
@@ -199,7 +199,7 @@ macro_rules! impl_column_type {
                 #[new]
                 #[pyo3(signature=(precision_scale=None))]
                 fn new(precision_scale: Option<(u32, u32)>) -> (Self, PyColumnTypeMeta) {
-                    let (precision, scale) = precision_scale.unwrap_or((u32::MAX, u32::MAX));
+                    let (precision, scale) = precision_scale.unwrap_or((0, 0));
                     (
                         Self {
                             precision: std::sync::atomic::AtomicU32::new(precision),
@@ -214,7 +214,7 @@ macro_rules! impl_column_type {
                     let precision = self.precision.load(std::sync::atomic::Ordering::Relaxed);
                     let scale = self.scale.load(std::sync::atomic::Ordering::Relaxed);
 
-                    if precision == u32::MAX || scale == u32::MAX {
+                    if precision == 0 || scale == 0 {
                         None
                     } else {
                         Some((precision, scale))
@@ -223,7 +223,7 @@ macro_rules! impl_column_type {
 
                 #[setter]
                 fn set_precision_scale(&self, val: Option<(u32, u32)>) {
-                    let (precision, scale) = val.unwrap_or((u32::MAX, u32::MAX));
+                    let (precision, scale) = val.unwrap_or((0, 0));
                     self.precision.store(precision, std::sync::atomic::Ordering::Relaxed);
                     self.scale.store(scale, std::sync::atomic::Ordering::Relaxed);
                 }
@@ -233,7 +233,7 @@ macro_rules! impl_column_type {
                         .extract::<pyo3::PyRef<'_, Self>>(slf.py())
                         .map_err(
                             |_| typeerror!(
-                                "'==' not supported between instances of {:?} and {:?}",
+                                "'==' not supported between instances of {} and {}",
                                 slf.py(),
                                 slf.as_ptr(),
                                 other.as_ptr()
@@ -248,7 +248,7 @@ macro_rules! impl_column_type {
                         .extract::<pyo3::PyRef<'_, Self>>(slf.py())
                         .map_err(
                             |_| typeerror!(
-                                "'!=' not supported between instances of {:?} and {:?}",
+                                "'!=' not supported between instances of {} and {}",
                                 slf.py(),
                                 slf.as_ptr(),
                                 other.as_ptr()
@@ -416,7 +416,7 @@ impl PyIntervalType {
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
         let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
             typeerror!(
-                "'==' not supported between instances of {:?} and {:?}",
+                "'==' not supported between instances of {} and {}",
                 slf.py(),
                 slf.as_ptr(),
                 other.as_ptr()
@@ -429,7 +429,7 @@ impl PyIntervalType {
     fn __ne__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
         let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
             typeerror!(
-                "'==' not supported between instances of {:?} and {:?}",
+                "'==' not supported between instances of {} and {}",
                 slf.py(),
                 slf.as_ptr(),
                 other.as_ptr()
@@ -506,7 +506,7 @@ impl PyEnumType {
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
         let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
             typeerror!(
-                "'==' not supported between instances of {:?} and {:?}",
+                "'==' not supported between instances of {} and {}",
                 slf.py(),
                 slf.as_ptr(),
                 other.as_ptr()
@@ -519,7 +519,7 @@ impl PyEnumType {
     fn __ne__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
         let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
             typeerror!(
-                "'==' not supported between instances of {:?} and {:?}",
+                "'==' not supported between instances of {} and {}",
                 slf.py(),
                 slf.as_ptr(),
                 other.as_ptr()
@@ -599,7 +599,7 @@ impl PyArrayType {
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
         let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
             typeerror!(
-                "'==' not supported between instances of {:?} and {:?}",
+                "'==' not supported between instances of {} and {}",
                 slf.py(),
                 slf.as_ptr(),
                 other.as_ptr()
@@ -627,7 +627,7 @@ impl PyArrayType {
     fn __ne__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
         let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
             typeerror!(
-                "'==' not supported between instances of {:?} and {:?}",
+                "'==' not supported between instances of {} and {}",
                 slf.py(),
                 slf.as_ptr(),
                 other.as_ptr()

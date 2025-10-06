@@ -1,5 +1,3 @@
-#![allow(unused_unsafe)]
-
 use pyo3::types::PyAnyMethods;
 use std::ptr::NonNull;
 
@@ -10,7 +8,7 @@ mod serialize;
 pub use deserialize::DeserializedValue;
 pub use serialize::SerializedValue;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReturnableValue {
     deserialized: Option<DeserializedValue>,
     serialized: Option<SerializedValue>,
@@ -50,7 +48,7 @@ impl ReturnableValue {
         match &*r#type {
             sea_query::ColumnType::Boolean => unsafe {
                 if pyo3::ffi::PyBool_Check(object.as_ptr()) == 0 {
-                    return Err(typeerror!("expected bool, got {:?}", object.py(), object.as_ptr()));
+                    return Err(typeerror!("expected bool, got {}", object.py(), object.as_ptr()));
                 }
 
                 Ok(Self::from(DeserializedValue::Bool(
@@ -89,7 +87,7 @@ impl ReturnableValue {
             | sea_query::ColumnType::MacAddr
             | sea_query::ColumnType::LTree => unsafe {
                 if pyo3::ffi::PyUnicode_CheckExact(object.as_ptr()) == 0 {
-                    return Err(typeerror!("expected str, got {:?}", object.py(), object.as_ptr()));
+                    return Err(typeerror!("expected str, got {}", object.py(), object.as_ptr()));
                 }
 
                 Ok(Self::from(DeserializedValue::String(NonNull::new_unchecked(
@@ -102,7 +100,7 @@ impl ReturnableValue {
             | sea_query::ColumnType::Bit(_)
             | sea_query::ColumnType::VarBit(_) => unsafe {
                 if pyo3::ffi::PyBytes_CheckExact(object.as_ptr()) == 0 {
-                    return Err(typeerror!("expected bytes, got {:?}", object.py(), object.as_ptr()));
+                    return Err(typeerror!("expected bytes, got {}", object.py(), object.as_ptr()));
                 }
 
                 Ok(Self::from(DeserializedValue::Bytes(NonNull::new_unchecked(
@@ -120,7 +118,7 @@ impl ReturnableValue {
             sea_query::ColumnType::Decimal(_) | sea_query::ColumnType::Money(_) => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DECIMAL_TYPE) == 0 {
                     return Err(typeerror!(
-                        "expected decimal.Decimal, got {:?}",
+                        "expected decimal.Decimal, got {}",
                         object.py(),
                         object.as_ptr()
                     ));
@@ -133,7 +131,7 @@ impl ReturnableValue {
             sea_query::ColumnType::DateTime | sea_query::ColumnType::Timestamp => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DATETIME_TYPE) == 0 {
                     return Err(typeerror!(
-                        "expected datetime.datetime, got {:?}",
+                        "expected datetime.datetime, got {}",
                         object.py(),
                         object.as_ptr()
                     ));
@@ -146,7 +144,7 @@ impl ReturnableValue {
             sea_query::ColumnType::TimestampWithTimeZone => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DATETIME_TYPE) == 0 {
                     return Err(typeerror!(
-                        "expected datetime.datetime, got {:?}",
+                        "expected datetime.datetime, got {}",
                         object.py(),
                         object.as_ptr()
                     ));
@@ -159,7 +157,7 @@ impl ReturnableValue {
             sea_query::ColumnType::Time => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_TIME_TYPE) == 0 {
                     return Err(typeerror!(
-                        "expected datetime.time, got {:?}",
+                        "expected datetime.time, got {}",
                         object.py(),
                         object.as_ptr()
                     ));
@@ -172,7 +170,7 @@ impl ReturnableValue {
             sea_query::ColumnType::Date => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DATE_TYPE) == 0 {
                     return Err(typeerror!(
-                        "expected datetime.date, got {:?}",
+                        "expected datetime.date, got {}",
                         object.py(),
                         object.as_ptr()
                     ));
@@ -191,7 +189,7 @@ impl ReturnableValue {
             },
             sea_query::ColumnType::Uuid => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_UUID_TYPE) == 0 {
-                    return Err(typeerror!("expected uuid.UUID, got {:?}", object.py(), object.as_ptr()));
+                    return Err(typeerror!("expected uuid.UUID, got {}", object.py(), object.as_ptr()));
                 }
 
                 Ok(Self::from(DeserializedValue::Uuid(NonNull::new_unchecked(
@@ -202,7 +200,7 @@ impl ReturnableValue {
             sea_query::ColumnType::Enum { .. } => unsafe {
                 // TODO: support enum.EnumMeta
                 if pyo3::ffi::PyUnicode_CheckExact(object.as_ptr()) == 0 {
-                    return Err(typeerror!("expected str, got {:?}", object.py(), object.as_ptr()));
+                    return Err(typeerror!("expected str, got {}", object.py(), object.as_ptr()));
                 }
 
                 Ok(Self::from(DeserializedValue::String(NonNull::new_unchecked(
@@ -213,7 +211,7 @@ impl ReturnableValue {
                 use pyo3::types::PyListMethods;
 
                 if pyo3::ffi::PyList_CheckExact(object.as_ptr()) == 0 {
-                    return Err(typeerror!("expected list, got {:?}", object.py(), object.as_ptr()));
+                    return Err(typeerror!("expected list, got {}", object.py(), object.as_ptr()));
                 }
 
                 let list = object.cast_into_unchecked::<pyo3::types::PyList>();
@@ -232,7 +230,7 @@ impl ReturnableValue {
 
                 if pyo3::ffi::PyList_CheckExact(object.as_ptr()) == 0 {
                     return Err(typeerror!(
-                        "expected list of floats, got {:?}",
+                        "expected list of floats, got {}",
                         object.py(),
                         object.as_ptr()
                     ));
@@ -551,6 +549,18 @@ impl PyAdaptedValue {
         let obj = lock.deserialize(py);
 
         unsafe { pyo3::Py::from_borrowed_ptr_or_err(py, obj.as_pyobject()) }
+    }
+
+    fn __copy__(&self) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(self.inner.lock().clone()),
+        }
+    }
+
+    fn copy(&self) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(self.inner.lock().clone()),
+        }
     }
 
     fn to_sql(&self, py: pyo3::Python<'_>) -> String {

@@ -610,3 +610,309 @@ class AdaptedValue:
         ...
 
     def __repr__(self) -> str: ...
+
+
+class ColumnRef:
+    name: str
+    table: typing.Optional[str]
+    schema: typing.Optional[str]
+
+    def __init__(
+        self,
+        name: str,
+        table: typing.Optional[str] = ...,
+        schema: typing.Optional[str] = ...,
+    ) -> None: ...
+    @classmethod
+    def parse(cls, string: str) -> "ColumnRef": ...
+    def __eq__(self, other: "ColumnRef") -> bool: ...
+    def __ne__(self, other: "ColumnRef") -> bool: ...
+    def __repr__(self) -> str: ...
+
+class Expr:
+    """
+    Represents a Simple Expression in SQL.
+    """
+
+    def __new__(
+        cls,
+        value: typing.Union[
+            Self,
+            AdaptedValue,
+            ColumnRef,
+            typing.Tuple[Self],
+            _AsteriskType,
+            typing.Any,
+        ],
+        /,
+    ) -> Self: ...
+
+    @classmethod
+    def val(cls, value: AdaptedValue) -> Self:
+        """
+        Express a `AdaptedValue`, returning a `Expr`.
+        """
+        ...
+
+    @classmethod
+    def func(cls, value: FunctionCall) -> Self:
+        """
+        Express a `FunctionCall`, returning a `Expr`.
+        """
+        ...
+
+    @classmethod
+    def col(cls, name: typing.Union[str, ColumnRef]) -> Self:
+        """
+        Express the target column without table prefix, returning a `Expr`.
+        """
+        ...
+
+    @classmethod
+    def tuple(cls, values: typing.Union[typing.Set[Self], typing.List[Self], typing.Tuple[Self]]) -> Self:
+        """
+        Wraps tuple of `Expr`, can be used for tuple comparison
+        """
+        ...
+
+    @classmethod
+    def asterisk(cls) -> Self:
+        """
+        Shorthand for `Expr.col("*")`
+        """
+        ...
+
+    @classmethod
+    def custom(cls, value: str) -> Self:
+        """
+        Express any custom expression in `str`.
+        """
+        ...
+
+    @classmethod
+    def current_date(cls) -> Self:
+        """
+        Keyword `CURRENT_DATE`.
+        """
+        ...
+
+    @classmethod
+    def current_time(cls) -> Self:
+        """
+        Keyword `CURRENT_TIME`.
+        """
+        ...
+
+    @classmethod
+    def current_timestamp(cls) -> Self:
+        """
+        Keyword `CURRENT_TIMESTAMP`.
+        """
+        ...
+
+    @classmethod
+    def null(cls) -> Self:
+        """
+        Keyword `NULL`.
+        """
+        ...
+
+    def cast_as(self, value: str) -> Self:
+        """
+        Express a `CAST AS` expression.
+        """
+        ...
+
+    def like(self, pattern: str, escape: typing.Optional[str] = ...) -> Self:
+        """
+        Express a `LIKE` expression.
+        """
+        ...
+
+    def not_like(self, pattern: str, escape: typing.Optional[str] = ...) -> Self:
+        """
+        Express a `NOT LIKE` expression.
+        """
+        ...
+
+    def __eq__(self, other: Self) -> Self: ...
+    def __ne__(self, other: Self) -> Self: ...
+    def __gt__(self, other: Self) -> Self: ...
+    def __ge__(self, other: Self) -> Self: ...
+    def __lt__(self, other: Self) -> Self: ...
+    def __le__(self, other: Self) -> Self: ...
+    def __add__(self, other: Self) -> Self: ...
+    def __sub__(self, other: Self) -> Self: ...
+    def __and__(self, other: Self) -> Self: ...
+    def __or__(self, other: Self) -> Self: ...
+    def __truediv__(self, other: Self) -> Self: ...
+    def is_(self, other: Self) -> Self:
+        """
+        Express a `IS` expression.
+        """
+        ...
+
+    def sqlite_matches(self, other: Self) -> Self:
+        """
+        Express an sqlite `MATCH` operator.
+        """
+        ...
+
+    def sqlite_glob(self, other: Self) -> Self:
+        """
+        Express an sqlite `GLOB` operator.
+        """
+        ...
+
+    def pg_concat(self, other: Self) -> Self:
+        """
+        Express an postgres concatenate (`||`) expression.
+        """
+        ...
+
+    def pg_contained(self, other: Self) -> Self:
+        """
+        Express an postgres fulltext search contained (`<@`) expression.
+        """
+        ...
+
+    def cast_json_field(self, other: Self) -> Self:
+        """
+        Express a postgres/sqlite retrieves JSON field and casts it to an appropriate SQL type (`->>`).
+        """
+        ...
+
+    def get_json_field(self, other: Self) -> Self:
+        """
+        Express a postgres/sqlite retrieves JSON field and casts it to an appropriate SQL type (`->`).
+        """
+        ...
+
+    def pg_contains(self, other: Self) -> Self:
+        """
+        Express an postgres fulltext search contains (`@>`) expression.
+        """
+        ...
+
+    def pg_matches(self, other: Self) -> Self:
+        """
+        Express an postgres fulltext search matches (`@@`) expression.
+        """
+        ...
+
+    def pg_ilike(self, other: Self) -> Self:
+        """
+        Express an postgres `ILIKE` expression.
+        """
+        ...
+
+    def pg_not_ilike(self, other: Self) -> Self:
+        """
+        Express an postgres `NOT ILIKE` expression.
+        """
+        ...
+
+    def is_not(self, other: Self) -> Self:
+        """
+        Express a `IS NOT` expression.
+        """
+        ...
+    def is_null(self) -> Self:
+        """
+        Express a `IS NULL` expression.
+        """
+        ...
+    def is_not_null(self) -> Self:
+        """
+        Express a `IS NOT NULL` expression.
+        """
+        ...
+    def __lshift__(self, other: Self) -> Self: ...
+    def __rshift__(self, other: Self) -> Self: ...
+    def __mod__(self, other: Self) -> Self: ...
+    def __mul__(self, other: Self) -> Self: ...
+    def between(self, a: Self, b: Self) -> Self:
+        """
+        Express a `BETWEEN` expression.
+        """
+        ...
+
+    def not_between(self, a: Self, b: Self) -> Self:
+        """
+        Express a `NOT BETWEEN` expression.
+        """
+        ...
+
+    def in_(self, expr: typing.Sequence[Self]) -> Self:
+        """
+        Express a `IN` expression.
+        """
+        ...
+
+    def not_in(self, expr: typing.Sequence[Self]) -> Self:
+        """
+        Express a `NOT IN` expression.
+        """
+        ...
+
+    def __str__(self) -> str:
+        """
+        Converts the expression to its SQL string representation.
+        """
+        ...
+
+    def __repr__(self) -> str: ...
+
+class FunctionCall:
+    def __new__(cls, name: str) -> Self: ...
+    def arg(self, arg: Expr) -> Self: ...
+    @classmethod
+    def min(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def max(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def abs(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def avg(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def count(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def count_distinct(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def if_null(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def greatest(cls, exprs: typing.Sequence[Expr]) -> Self: ...
+    @classmethod
+    def least(cls, exprs: typing.Sequence[Expr]) -> Self: ...
+    @classmethod
+    def char_length(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def coalesce(cls, exprs: typing.Sequence[Expr]) -> Self: ...
+    @classmethod
+    def lower(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def upper(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def bit_and(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def bit_or(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def random(cls) -> Self: ...
+    @classmethod
+    def round(cls, expr: Expr) -> Self: ...
+    @classmethod
+    def md5(cls, expr: Expr) -> Self: ...
+    def __str__(self) -> str: ...
+    def __repr__(self) -> str: ...
+
+def all(arg1: Expr, *args: Expr) -> Expr:
+    """
+    Create a condition that is false if any of the conditions is false.
+    """
+    ...
+
+def any(arg1: Expr, *args: Expr) -> Expr:
+    """
+    Create a condition that is true if any of the conditions is true.
+    """
+    ...

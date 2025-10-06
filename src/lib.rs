@@ -1,3 +1,8 @@
+#![allow(unused_unsafe)]
+#![allow(clippy::macro_metavars_in_unsafe)]
+#![warn(clippy::print_stdout)]
+#![warn(clippy::print_stderr)]
+#![warn(clippy::dbg_macro)]
 #![feature(likely_unlikely)]
 #![feature(optimize_attribute)]
 
@@ -8,6 +13,7 @@ mod macros;
 mod adaptation;
 mod column;
 mod common;
+mod expression;
 mod typeref;
 
 /// RapidQuery core module written in Rust
@@ -32,7 +38,10 @@ mod _lib {
     use super::adaptation::PyAdaptedValue;
 
     #[pymodule_export]
-    use super::common::PyAsteriskType;
+    use super::common::{PyAsteriskType, PyColumnRef};
+
+    #[pymodule_export]
+    use super::expression::{PyExpr, PyFunctionCall, any, all};
 
     #[pymodule_init]
     fn init(m: &pyo3::Bound<'_, pyo3::types::PyModule>) -> pyo3::PyResult<()> {

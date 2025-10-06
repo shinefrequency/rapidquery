@@ -26,7 +26,7 @@ pub unsafe fn get_type_name<'a>(py: pyo3::Python<'a>, obj: *mut pyo3::ffi::PyObj
 ///
 /// ```rust
 /// typeerror!(
-///     "expected str, got {:?}",
+///     "expected str, got {}",
 ///     py,
 ///     value.as_ptr(),
 /// )
