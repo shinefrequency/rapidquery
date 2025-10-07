@@ -80,7 +80,7 @@ impl TryFrom<pyo3::Bound<'_, pyo3::PyAny>> for PyExpr {
                 let value = value.cast_into_unchecked::<super::function::PyFunctionCall>();
 
                 Ok(Self::from_function_call(value.get()))
-            } else if pyo3::ffi::PyTuple_CheckExact(value.as_ptr()) == 1 {
+            } else if pyo3::ffi::PyTuple_Check(value.as_ptr()) == 1 {
                 let value = value.cast_into_unchecked::<pyo3::types::PyTuple>();
                 let mut arr: Vec<Self> = Vec::new();
 
@@ -89,6 +89,11 @@ impl TryFrom<pyo3::Bound<'_, pyo3::PyAny>> for PyExpr {
                 }
 
                 Ok(Self::from_tuple(arr.into_iter().map(|x| x.inner.lock().clone())))
+            } else if type_ptr == crate::typeref::EXPR_TYPE {
+                let value = value.cast_into_unchecked::<Self>();
+                let x = value.get().inner.lock();
+
+                Ok(Self { inner: parking_lot::Mutex::new(x.clone()) })
             } else {
                 let py = value.py();
                 let mut value = crate::adaptation::ReturnableValue::from_bound(value, None)?;
@@ -106,6 +111,7 @@ impl PyExpr {
     #[new]
     #[pyo3(signature=(value, /))]
     fn __new__(value: pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<pyo3::PyClassInitializer<Self>> {
+        // Go fast path when value is PyExpr
         if let Ok(x) = value.cast::<Self>() {
             return Ok(pyo3::PyClassInitializer::from(x.clone()));
         }

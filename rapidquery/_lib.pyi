@@ -8,6 +8,7 @@ class _AsteriskType:
     """
     Asterisk `"*"` - very useful for expression creating
     """
+
     ...
 
 ASTERISK: typing.Final[_AsteriskType]
@@ -611,7 +612,6 @@ class AdaptedValue:
 
     def __repr__(self) -> str: ...
 
-
 class ColumnRef:
     name: str
     table: typing.Optional[str]
@@ -640,13 +640,12 @@ class Expr:
             Self,
             AdaptedValue,
             ColumnRef,
-            typing.Tuple[Self],
+            tuple,
             _AsteriskType,
             typing.Any,
         ],
         /,
     ) -> Self: ...
-
     @classmethod
     def val(cls, value: AdaptedValue) -> Self:
         """
@@ -669,7 +668,9 @@ class Expr:
         ...
 
     @classmethod
-    def tuple(cls, values: typing.Union[typing.Set[Self], typing.List[Self], typing.Tuple[Self]]) -> Self:
+    def tuple(
+        cls, values: typing.Union[typing.Set[Self], typing.List[Self], typing.Tuple[Self]]
+    ) -> Self:
         """
         Wraps tuple of `Expr`, can be used for tuple comparison
         """
@@ -855,7 +856,7 @@ class Expr:
         """
         ...
 
-    def __str__(self) -> str:
+    def to_sql(self) -> str:
         """
         Converts the expression to its SQL string representation.
         """
@@ -902,7 +903,7 @@ class FunctionCall:
     def round(cls, expr: Expr) -> Self: ...
     @classmethod
     def md5(cls, expr: Expr) -> Self: ...
-    def __str__(self) -> str: ...
+    def to_sql(self) -> str: ...
     def __repr__(self) -> str: ...
 
 def all(arg1: Expr, *args: Expr) -> Expr:
