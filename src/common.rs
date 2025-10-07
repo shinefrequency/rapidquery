@@ -32,7 +32,9 @@ impl sea_query::IntoColumnRef for PyColumnRef {
     fn into_column_ref(self) -> sea_query::ColumnRef {
         if let ColumnNameOrAstrisk::Name(name) = self.col {
             match (self.table, self.schema) {
-                (Some(table), Some(schema)) => sea_query::ColumnRef::SchemaTableColumn(schema, table, name),
+                (Some(table), Some(schema)) => {
+                    sea_query::ColumnRef::SchemaTableColumn(schema, table, name)
+                }
                 (Some(table), None) => sea_query::ColumnRef::TableColumn(table, name),
                 _ => sea_query::ColumnRef::Column(name),
             }
@@ -94,7 +96,9 @@ impl FromStr for PyColumnRef {
         let mut s = s.split('.').map(String::from).collect::<Vec<String>>();
 
         if s.len() > 3 {
-            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>("invalid format"));
+            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "invalid format",
+            ));
         }
 
         let name = s.pop().unwrap();

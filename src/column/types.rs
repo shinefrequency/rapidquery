@@ -15,7 +15,13 @@ pub trait AsColumnType {
 ///
 /// Don't try to use this class directly; **Use it only for type-hints.**
 /// Also don't use this class as subclass.
-#[pyo3::pyclass(module = "rapidquery._lib", name = "ColumnTypeMeta", frozen, subclass, generic)]
+#[pyo3::pyclass(
+    module = "rapidquery._lib",
+    name = "ColumnTypeMeta",
+    frozen,
+    subclass,
+    generic
+)]
 #[derive(Default, Clone, Debug)]
 pub struct PyColumnTypeMeta {}
 
@@ -365,13 +371,14 @@ impl PyIntervalType {
     #[new]
     #[pyo3(signature=(fields=None, precision=None))]
     fn new(fields: Option<u8>, precision: Option<u32>) -> pyo3::PyResult<(Self, PyColumnTypeMeta)> {
-        let fields =
-            match fields {
-                Some(x) => Some(into_pginterval(x).map_err(|_| {
-                    pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>("expected INTERVAL_* constants")
-                })?),
-                None => None,
-            };
+        let fields = match fields {
+            Some(x) => Some(into_pginterval(x).map_err(|_| {
+                pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "expected INTERVAL_* constants",
+                )
+            })?),
+            None => None,
+        };
 
         let slf = Self {
             inner: parking_lot::Mutex::new(IntervalTypeFields { fields, precision }),
@@ -388,13 +395,14 @@ impl PyIntervalType {
 
     #[setter]
     fn set_fields(&self, val: Option<u8>) -> pyo3::PyResult<()> {
-        let val =
-            match val {
-                Some(x) => Some(into_pginterval(x).map_err(|_| {
-                    pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>("expected INTERVAL_* constants")
-                })?),
-                None => None,
-            };
+        let val = match val {
+            Some(x) => Some(into_pginterval(x).map_err(|_| {
+                pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "expected INTERVAL_* constants",
+                )
+            })?),
+            None => None,
+        };
 
         let mut lock = self.inner.lock();
         lock.fields = val;
@@ -414,27 +422,31 @@ impl PyIntervalType {
     }
 
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
-        let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
-            typeerror!(
-                "'==' not supported between instances of {} and {}",
-                slf.py(),
-                slf.as_ptr(),
-                other.as_ptr()
-            )
-        })?;
+        let other = other
+            .extract::<pyo3::PyRef<'_, Self>>(slf.py())
+            .map_err(|_| {
+                typeerror!(
+                    "'==' not supported between instances of {} and {}",
+                    slf.py(),
+                    slf.as_ptr(),
+                    other.as_ptr()
+                )
+            })?;
 
         Ok(slf.as_ptr() == other.as_ptr() || *slf.inner.lock() == *other.inner.lock())
     }
 
     fn __ne__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
-        let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
-            typeerror!(
-                "'==' not supported between instances of {} and {}",
-                slf.py(),
-                slf.as_ptr(),
-                other.as_ptr()
-            )
-        })?;
+        let other = other
+            .extract::<pyo3::PyRef<'_, Self>>(slf.py())
+            .map_err(|_| {
+                typeerror!(
+                    "'==' not supported between instances of {} and {}",
+                    slf.py(),
+                    slf.as_ptr(),
+                    other.as_ptr()
+                )
+            })?;
 
         Ok(slf.as_ptr() == other.as_ptr() && *slf.inner.lock() != *other.inner.lock())
     }
@@ -504,27 +516,31 @@ impl PyEnumType {
     }
 
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
-        let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
-            typeerror!(
-                "'==' not supported between instances of {} and {}",
-                slf.py(),
-                slf.as_ptr(),
-                other.as_ptr()
-            )
-        })?;
+        let other = other
+            .extract::<pyo3::PyRef<'_, Self>>(slf.py())
+            .map_err(|_| {
+                typeerror!(
+                    "'==' not supported between instances of {} and {}",
+                    slf.py(),
+                    slf.as_ptr(),
+                    other.as_ptr()
+                )
+            })?;
 
         Ok(slf.as_ptr() == other.as_ptr() || *slf.inner.lock() == *other.inner.lock())
     }
 
     fn __ne__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
-        let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
-            typeerror!(
-                "'==' not supported between instances of {} and {}",
-                slf.py(),
-                slf.as_ptr(),
-                other.as_ptr()
-            )
-        })?;
+        let other = other
+            .extract::<pyo3::PyRef<'_, Self>>(slf.py())
+            .map_err(|_| {
+                typeerror!(
+                    "'==' not supported between instances of {} and {}",
+                    slf.py(),
+                    slf.as_ptr(),
+                    other.as_ptr()
+                )
+            })?;
 
         Ok(slf.as_ptr() == other.as_ptr() && *slf.inner.lock() != *other.inner.lock())
     }
@@ -532,7 +548,10 @@ impl PyEnumType {
     fn __repr__(slf: pyo3::PyRef<'_, Self>) -> String {
         let inner = slf.inner.lock();
 
-        format!("<EnumColumnType name={:?} variants={:?}>", inner.name, inner.variants)
+        format!(
+            "<EnumColumnType name={:?} variants={:?}>",
+            inner.name, inner.variants
+        )
     }
 }
 
@@ -563,7 +582,10 @@ pub struct PyArrayType {
 #[pyo3::pymethods]
 impl PyArrayType {
     #[new]
-    fn new(py: pyo3::Python, element: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<(Self, PyColumnTypeMeta)> {
+    fn new(
+        py: pyo3::Python,
+        element: pyo3::Py<pyo3::PyAny>,
+    ) -> pyo3::PyResult<(Self, PyColumnTypeMeta)> {
         if !element.bind(py).is_instance_of::<PyColumnTypeMeta>() {
             Err(pyo3::PyErr::new::<pyo3::exceptions::PyTypeError, _>(
                 "element must be an instance of Base",
@@ -597,14 +619,16 @@ impl PyArrayType {
     }
 
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
-        let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
-            typeerror!(
-                "'==' not supported between instances of {} and {}",
-                slf.py(),
-                slf.as_ptr(),
-                other.as_ptr()
-            )
-        })?;
+        let other = other
+            .extract::<pyo3::PyRef<'_, Self>>(slf.py())
+            .map_err(|_| {
+                typeerror!(
+                    "'==' not supported between instances of {} and {}",
+                    slf.py(),
+                    slf.as_ptr(),
+                    other.as_ptr()
+                )
+            })?;
 
         if slf.as_ptr() == other.as_ptr() {
             return Ok(true);
@@ -614,7 +638,11 @@ impl PyArrayType {
             let inner1 = slf.inner.lock();
             let inner2 = other.inner.lock();
 
-            let result = pyo3::ffi::PyObject_RichCompareBool((*inner1).as_ptr(), (*inner2).as_ptr(), pyo3::ffi::Py_EQ);
+            let result = pyo3::ffi::PyObject_RichCompareBool(
+                (*inner1).as_ptr(),
+                (*inner2).as_ptr(),
+                pyo3::ffi::Py_EQ,
+            );
 
             if result == -1 {
                 Err(pyo3::PyErr::fetch(slf.py()))
@@ -625,14 +653,16 @@ impl PyArrayType {
     }
 
     fn __ne__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<pyo3::PyAny>) -> pyo3::PyResult<bool> {
-        let other = other.extract::<pyo3::PyRef<'_, Self>>(slf.py()).map_err(|_| {
-            typeerror!(
-                "'==' not supported between instances of {} and {}",
-                slf.py(),
-                slf.as_ptr(),
-                other.as_ptr()
-            )
-        })?;
+        let other = other
+            .extract::<pyo3::PyRef<'_, Self>>(slf.py())
+            .map_err(|_| {
+                typeerror!(
+                    "'==' not supported between instances of {} and {}",
+                    slf.py(),
+                    slf.as_ptr(),
+                    other.as_ptr()
+                )
+            })?;
 
         if slf.as_ptr() == other.as_ptr() {
             return Ok(false);
@@ -642,7 +672,11 @@ impl PyArrayType {
             let inner1 = slf.inner.lock();
             let inner2 = other.inner.lock();
 
-            let result = pyo3::ffi::PyObject_RichCompareBool((*inner1).as_ptr(), (*inner2).as_ptr(), pyo3::ffi::Py_NE);
+            let result = pyo3::ffi::PyObject_RichCompareBool(
+                (*inner1).as_ptr(),
+                (*inner2).as_ptr(),
+                pyo3::ffi::Py_NE,
+            );
 
             if result == -1 {
                 Err(pyo3::PyErr::fetch(slf.py()))
@@ -662,7 +696,8 @@ impl AsColumnType for PyArrayType {
     #[inline]
     fn as_column_type<'a>(&'a self, py: pyo3::Python<'a>) -> sea_query::ColumnType {
         let inner = self.inner.lock();
-        let col = unsafe { super::convert::convert_to_column_type(inner.bind(py)).unwrap_unchecked() };
+        let col =
+            unsafe { super::convert::convert_to_column_type(inner.bind(py)).unwrap_unchecked() };
 
         sea_query::ColumnType::Array(sea_query::RcOrArc::new(col))
     }

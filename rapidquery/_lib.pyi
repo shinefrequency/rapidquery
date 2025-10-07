@@ -629,7 +629,7 @@ class ColumnRef:
     def __ne__(self, other: "ColumnRef") -> bool: ...
     def __repr__(self) -> str: ...
 
-ExprUnion = typing.Union[
+_ExprValue = typing.Union[
     Self,
     AdaptedValue,
     ColumnRef,
@@ -643,11 +643,7 @@ class Expr:
     Represents a Simple Expression in SQL.
     """
 
-    def __new__(
-        cls,
-        value: ExprUnion,
-        /,
-    ) -> Self: ...
+    def __new__(cls, value: _ExprValue, /) -> Self: ...
     @classmethod
     def val(cls, value: AdaptedValue) -> Self:
         """
@@ -920,7 +916,7 @@ def any(arg1: Expr, *args: Expr) -> Expr:
     """
     ...
 
-class ColumnDef:
+class Column:
     """
     Defines a table column with its properties and constraints.
 
@@ -975,8 +971,8 @@ class ColumnDef:
         auto_increment: bool = ...,
         extra: typing.Optional[str] = ...,
         comment: typing.Optional[str] = ...,
-        default: ExprUnion = ...,
-        generated: ExprUnion = ...,
+        default: _ExprValue = ...,
+        generated: _ExprValue = ...,
         stored_generated: bool = ...,
     ) -> None: ...
     def __repr__(self) -> str: ...

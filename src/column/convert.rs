@@ -1,6 +1,9 @@
 use pyo3::types::PyAnyMethods;
 
-unsafe fn extract_and_convert<T>(py: pyo3::Python, obj_ptr: *mut pyo3::ffi::PyObject) -> sea_query::ColumnType
+unsafe fn extract_and_convert<T>(
+    py: pyo3::Python,
+    obj_ptr: *mut pyo3::ffi::PyObject,
+) -> sea_query::ColumnType
 where
     T: pyo3::PyClass<Frozen = pyo3::pyclass::boolean_struct::True> + std::marker::Sync,
     T: super::types::AsColumnType,

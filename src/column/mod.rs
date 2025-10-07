@@ -96,7 +96,9 @@ impl PyColumn {
         let default_expr = {
             match default {
                 OptionalParam::Undefined => None,
-                OptionalParam::Defined(x) => Some(crate::expression::PyExpr::try_from(x)?),
+                OptionalParam::Defined(x) => Some(
+                    crate::expression::PyExpr::try_with_specific_type(x, Some(r#type))?,
+                ),
             }
         };
 
@@ -249,10 +251,7 @@ impl PyColumn {
     }
 
     #[setter]
-    fn set_default(
-        &self,
-        val: pyo3::Bound<'_, pyo3::PyAny>,
-    ) -> pyo3::PyResult<()> {
+    fn set_default(&self, val: pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<()> {
         let py = val.py();
         let default_expr = crate::expression::PyExpr::try_from(val)?;
 
@@ -272,10 +271,7 @@ impl PyColumn {
     }
 
     #[setter]
-    fn set_generated(
-        &self,
-        val: pyo3::Bound<'_, pyo3::PyAny>,
-    ) -> pyo3::PyResult<()> {
+    fn set_generated(&self, val: pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<()> {
         let py = val.py();
         let generated_expr = crate::expression::PyExpr::try_from(val)?;
 
@@ -323,7 +319,7 @@ impl PyColumn {
         if lock.options & (ColumnOptions::StoredGenerated as u8) > 0 {
             write!(&mut s, ", stored_generated=True").unwrap();
         }
-        
+
         write!(&mut s, ")").unwrap();
 
         unsafe { String::from_utf8_unchecked(s) }

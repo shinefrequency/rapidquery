@@ -12,11 +12,13 @@ impl<'a> pyo3::FromPyObject<'a> for OptionalParam<'a> {
 impl<'a> OptionalParam<'a> {
     #[inline]
     #[optimize(speed)]
+    #[allow(dead_code)]
     pub fn is_undefined(&self) -> bool {
         matches!(self, OptionalParam::Undefined)
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub unsafe fn unwrap_unchecked(self) -> pyo3::Bound<'a, pyo3::PyAny> {
         match self {
             OptionalParam::Defined(x) => x,

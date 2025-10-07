@@ -16,7 +16,10 @@ pub fn all(
     for m in args {
         let m = m.cast_into_exact::<PyExpr>()?;
 
-        let result = sea_query::ExprTrait::and(expr.get().inner.lock().clone(), m.get().inner.lock().clone());
+        let result = sea_query::ExprTrait::and(
+            expr.get().inner.lock().clone(),
+            m.get().inner.lock().clone(),
+        );
         expr = pyo3::Py::new(
             py,
             PyExpr {
@@ -40,7 +43,10 @@ pub fn any(
     for m in args {
         let m = m.cast_into_exact::<PyExpr>()?;
 
-        let result = sea_query::ExprTrait::or(expr.get().inner.lock().clone(), m.get().inner.lock().clone());
+        let result = sea_query::ExprTrait::or(
+            expr.get().inner.lock().clone(),
+            m.get().inner.lock().clone(),
+        );
         expr = pyo3::Py::new(
             py,
             PyExpr {

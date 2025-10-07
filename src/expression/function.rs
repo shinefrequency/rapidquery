@@ -15,7 +15,10 @@ impl PyFunctionCall {
         }
     }
 
-    pub fn arg<'a>(slf: pyo3::PyRef<'a, Self>, arg: &pyo3::Bound<'a, super::expr::PyExpr>) -> pyo3::PyRef<'a, Self> {
+    pub fn arg<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        arg: &pyo3::Bound<'a, super::expr::PyExpr>,
+    ) -> pyo3::PyRef<'a, Self> {
         let arg = arg.get().inner.lock().clone();
 
         {
@@ -27,35 +30,50 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn min(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn min(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::min(expr.get().inner.lock().clone())),
         }
     }
 
     #[classmethod]
-    fn max(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn max(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::max(expr.get().inner.lock().clone())),
         }
     }
 
     #[classmethod]
-    fn abs(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn abs(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::abs(expr.get().inner.lock().clone())),
         }
     }
 
     #[classmethod]
-    fn avg(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn avg(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::avg(expr.get().inner.lock().clone())),
         }
     }
 
     #[classmethod]
-    fn count(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn count(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::count(expr.get().inner.lock().clone())),
         }
@@ -67,7 +85,9 @@ impl PyFunctionCall {
         expr: &pyo3::Bound<'_, super::expr::PyExpr>,
     ) -> Self {
         Self {
-            inner: parking_lot::Mutex::new(sea_query::Func::count_distinct(expr.get().inner.lock().clone())),
+            inner: parking_lot::Mutex::new(sea_query::Func::count_distinct(
+                expr.get().inner.lock().clone(),
+            )),
         }
     }
 
@@ -86,7 +106,10 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn greatest(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, exprs: Vec<pyo3::Py<super::expr::PyExpr>>) -> Self {
+    fn greatest(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        exprs: Vec<pyo3::Py<super::expr::PyExpr>>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::greatest(
                 exprs.into_iter().map(|x| x.get().inner.lock().clone()),
@@ -95,7 +118,10 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn least(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, exprs: Vec<pyo3::Py<super::expr::PyExpr>>) -> Self {
+    fn least(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        exprs: Vec<pyo3::Py<super::expr::PyExpr>>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::least(
                 exprs.into_iter().map(|x| x.get().inner.lock().clone()),
@@ -104,14 +130,22 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn char_length(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn char_length(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
-            inner: parking_lot::Mutex::new(sea_query::Func::char_length(expr.get().inner.lock().clone())),
+            inner: parking_lot::Mutex::new(sea_query::Func::char_length(
+                expr.get().inner.lock().clone(),
+            )),
         }
     }
 
     #[classmethod]
-    fn coalesce(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, exprs: Vec<pyo3::Py<super::expr::PyExpr>>) -> Self {
+    fn coalesce(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        exprs: Vec<pyo3::Py<super::expr::PyExpr>>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::coalesce(
                 exprs.into_iter().map(|x| x.get().inner.lock().clone()),
@@ -120,30 +154,46 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn lower(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn lower(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::lower(expr.get().inner.lock().clone())),
         }
     }
 
     #[classmethod]
-    fn upper(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn upper(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::upper(expr.get().inner.lock().clone())),
         }
     }
 
     #[classmethod]
-    fn bit_and(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn bit_and(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
-            inner: parking_lot::Mutex::new(sea_query::Func::bit_and(expr.get().inner.lock().clone())),
+            inner: parking_lot::Mutex::new(sea_query::Func::bit_and(
+                expr.get().inner.lock().clone(),
+            )),
         }
     }
 
     #[classmethod]
-    fn bit_or(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn bit_or(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
-            inner: parking_lot::Mutex::new(sea_query::Func::bit_or(expr.get().inner.lock().clone())),
+            inner: parking_lot::Mutex::new(sea_query::Func::bit_or(
+                expr.get().inner.lock().clone(),
+            )),
         }
     }
 
@@ -155,14 +205,20 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn round(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn round(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::round(expr.get().inner.lock().clone())),
         }
     }
 
     #[classmethod]
-    fn md5(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
+    fn md5(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
+    ) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::md5(expr.get().inner.lock().clone())),
         }

@@ -2,11 +2,14 @@ use once_cell::race::OnceBool;
 
 // Column types
 pub(crate) static mut TINY_INTEGER_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
-pub(crate) static mut SMALL_INTEGER_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
+pub(crate) static mut SMALL_INTEGER_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject =
+    std::ptr::null_mut();
 pub(crate) static mut INTEGER_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut BIG_INTEGER_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
-pub(crate) static mut TINY_UNSIGNED_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
-pub(crate) static mut SMALL_UNSIGNED_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
+pub(crate) static mut TINY_UNSIGNED_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject =
+    std::ptr::null_mut();
+pub(crate) static mut SMALL_UNSIGNED_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject =
+    std::ptr::null_mut();
 pub(crate) static mut UNSIGNED_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut BIG_UNSIGNED_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut TEXT_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
@@ -15,7 +18,8 @@ pub(crate) static mut DOUBLE_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::pt
 pub(crate) static mut DECIMAL_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut DATETIME_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut TIMESTAMP_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
-pub(crate) static mut TIMESTAMP_WITH_TIMEZONE_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
+pub(crate) static mut TIMESTAMP_WITH_TIMEZONE_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject =
+    std::ptr::null_mut();
 pub(crate) static mut TIME_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut DATE_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut YEAR_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
@@ -54,7 +58,9 @@ pub(crate) static mut STD_DATETIME_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr
 pub(crate) static mut STD_DATE_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut STD_TIME_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 
-unsafe fn get_type_object_for<T: pyo3::PyTypeInfo>(py: pyo3::Python) -> *mut pyo3::ffi::PyTypeObject {
+unsafe fn get_type_object_for<T: pyo3::PyTypeInfo>(
+    py: pyo3::Python,
+) -> *mut pyo3::ffi::PyTypeObject {
     T::type_object_raw(py)
 }
 
@@ -64,7 +70,8 @@ unsafe fn look_up_type_object(
 ) -> *mut pyo3::ffi::PyTypeObject {
     let module = pyo3::ffi::PyImport_ImportModule(module_name.as_ptr());
     let module_dict = pyo3::ffi::PyObject_GenericGetDict(module, std::ptr::null_mut());
-    let ptr = pyo3::ffi::PyMapping_GetItemString(module_dict, member_name.as_ptr()).cast::<pyo3::ffi::PyTypeObject>();
+    let ptr = pyo3::ffi::PyMapping_GetItemString(module_dict, member_name.as_ptr())
+        .cast::<pyo3::ffi::PyTypeObject>();
 
     pyo3::ffi::Py_DECREF(module_dict);
     pyo3::ffi::Py_DECREF(module);
@@ -78,14 +85,19 @@ fn _initialize_typeref(py: pyo3::Python) -> bool {
         CHAR_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyCharType>(py);
         STRING_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyStringType>(py);
         TEXT_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyTextType>(py);
-        TINY_INTEGER_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyTinyIntegerType>(py);
-        SMALL_INTEGER_COLUMN_TYPE = get_type_object_for::<crate::column::types::PySmallIntegerType>(py);
+        TINY_INTEGER_COLUMN_TYPE =
+            get_type_object_for::<crate::column::types::PyTinyIntegerType>(py);
+        SMALL_INTEGER_COLUMN_TYPE =
+            get_type_object_for::<crate::column::types::PySmallIntegerType>(py);
         INTEGER_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyIntegerType>(py);
         BIG_INTEGER_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyBigIntegerType>(py);
-        TINY_UNSIGNED_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyTinyUnsignedType>(py);
-        SMALL_UNSIGNED_COLUMN_TYPE = get_type_object_for::<crate::column::types::PySmallUnsignedType>(py);
+        TINY_UNSIGNED_COLUMN_TYPE =
+            get_type_object_for::<crate::column::types::PyTinyUnsignedType>(py);
+        SMALL_UNSIGNED_COLUMN_TYPE =
+            get_type_object_for::<crate::column::types::PySmallUnsignedType>(py);
         UNSIGNED_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyUnsignedType>(py);
-        BIG_UNSIGNED_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyBigUnsignedType>(py);
+        BIG_UNSIGNED_COLUMN_TYPE =
+            get_type_object_for::<crate::column::types::PyBigUnsignedType>(py);
         FLOAT_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyFloatType>(py);
         DOUBLE_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyDoubleType>(py);
         DECIMAL_COLUMN_TYPE = get_type_object_for::<crate::column::types::PyDecimalType>(py);
@@ -125,8 +137,8 @@ fn _initialize_typeref(py: pyo3::Python) -> bool {
         STD_UUID_TYPE = look_up_type_object(c"uuid", c"UUID");
 
         pyo3::ffi::PyDateTime_IMPORT();
-        let datetime_capsule =
-            pyo3::ffi::PyCapsule_Import(c"datetime.datetime_CAPI".as_ptr(), 1).cast::<pyo3::ffi::PyDateTime_CAPI>();
+        let datetime_capsule = pyo3::ffi::PyCapsule_Import(c"datetime.datetime_CAPI".as_ptr(), 1)
+            .cast::<pyo3::ffi::PyDateTime_CAPI>();
 
         STD_DATETIME_TYPE = (*datetime_capsule).DateTimeType;
         STD_DATE_TYPE = (*datetime_capsule).DateType;

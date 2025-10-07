@@ -21,7 +21,10 @@ pub enum SerializedValue {
 }
 
 impl SerializedValue {
-    pub fn deserialize(&self, py: pyo3::Python<'_>) -> pyo3::PyResult<super::deserialize::DeserializedValue> {
+    pub fn deserialize(
+        &self,
+        py: pyo3::Python<'_>,
+    ) -> pyo3::PyResult<super::deserialize::DeserializedValue> {
         use chrono::{Datelike, Timelike};
         use pyo3::IntoPyObject;
 
@@ -35,39 +38,55 @@ impl SerializedValue {
                 Self::String(x) => {
                     let val = pyo3::types::PyString::intern(py, std::str::from_utf8_unchecked(x));
 
-                    Ok(super::deserialize::DeserializedValue::String(NonNull::new_unchecked(
-                        val.into_ptr(),
-                    )))
+                    Ok(super::deserialize::DeserializedValue::String(
+                        NonNull::new_unchecked(val.into_ptr()),
+                    ))
                 }
                 Self::Bytes(x) => {
                     let val = pyo3::types::PyBytes::new(py, x);
 
-                    Ok(super::deserialize::DeserializedValue::Bytes(NonNull::new_unchecked(
-                        val.into_ptr(),
-                    )))
+                    Ok(super::deserialize::DeserializedValue::Bytes(
+                        NonNull::new_unchecked(val.into_ptr()),
+                    ))
                 }
                 Self::Json(x) => {
-                    let encoded = serde_json::to_vec(x)
-                        .map_err(|x| pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(x.to_string()))?;
-                    let val = pyo3::types::PyString::intern(py, std::str::from_utf8_unchecked(&encoded));
+                    let encoded = serde_json::to_vec(x).map_err(|x| {
+                        pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(x.to_string())
+                    })?;
+                    let val =
+                        pyo3::types::PyString::intern(py, std::str::from_utf8_unchecked(&encoded));
 
                     let val = super::common::_deserialize_object_with_pyjson(py, val.as_ptr())?;
-                    Ok(super::deserialize::DeserializedValue::Json(NonNull::new_unchecked(val)))
+                    Ok(super::deserialize::DeserializedValue::Json(
+                        NonNull::new_unchecked(val),
+                    ))
                 }
                 Self::ChronoDate(x) => {
-                    let val = pyo3::types::PyDate::new(py, x.year(), (x.month0() + 1) as u8, (x.day0() + 1) as u8)?;
+                    let val = pyo3::types::PyDate::new(
+                        py,
+                        x.year(),
+                        (x.month0() + 1) as u8,
+                        (x.day0() + 1) as u8,
+                    )?;
 
                     Ok(super::deserialize::DeserializedValue::ChronoDate(
                         NonNull::new_unchecked(val.into_ptr()),
                     ))
                 }
                 Self::ChronoTime(x) => {
-                    let val = pyo3::types::PyTime::new(py, x.hour() as u8, x.minute() as u8, x.second() as u8, 0, None)
-                        .unwrap();
+                    let val = pyo3::types::PyTime::new(
+                        py,
+                        x.hour() as u8,
+                        x.minute() as u8,
+                        x.second() as u8,
+                        0,
+                        None,
+                    )
+                    .unwrap();
 
-                    Ok(super::deserialize::DeserializedValue::Bytes(NonNull::new_unchecked(
-                        val.into_ptr(),
-                    )))
+                    Ok(super::deserialize::DeserializedValue::Bytes(
+                        NonNull::new_unchecked(val.into_ptr()),
+                    ))
                 }
                 Self::ChronoDateTime(x) => {
                     let val = x.into_pyobject(py)?;
@@ -79,23 +98,25 @@ impl SerializedValue {
                 Self::ChronoDateTimeWithTimeZone(x) => {
                     let val = x.into_pyobject(py)?;
 
-                    Ok(super::deserialize::DeserializedValue::ChronoDateTimeWithTimeZone(
-                        NonNull::new_unchecked(val.into_ptr()),
-                    ))
+                    Ok(
+                        super::deserialize::DeserializedValue::ChronoDateTimeWithTimeZone(
+                            NonNull::new_unchecked(val.into_ptr()),
+                        ),
+                    )
                 }
                 Self::Uuid(x) => {
                     let val = x.into_pyobject(py)?;
 
-                    Ok(super::deserialize::DeserializedValue::Uuid(NonNull::new_unchecked(
-                        val.into_ptr(),
-                    )))
+                    Ok(super::deserialize::DeserializedValue::Uuid(
+                        NonNull::new_unchecked(val.into_ptr()),
+                    ))
                 }
                 Self::Decimal(x) => {
                     let val = x.into_pyobject(py)?;
 
-                    Ok(super::deserialize::DeserializedValue::Decimal(NonNull::new_unchecked(
-                        val.into_ptr(),
-                    )))
+                    Ok(super::deserialize::DeserializedValue::Decimal(
+                        NonNull::new_unchecked(val.into_ptr()),
+                    ))
                 }
                 Self::Array(x) => Ok(super::deserialize::DeserializedValue::Array(
                     x.iter().map(|x| x.deserialize(py).unwrap()).collect(),
@@ -103,9 +124,9 @@ impl SerializedValue {
                 Self::Vector(x) => {
                     let val = x.into_pyobject(py)?;
 
-                    Ok(super::deserialize::DeserializedValue::Vector(NonNull::new_unchecked(
-                        val.into_ptr(),
-                    )))
+                    Ok(super::deserialize::DeserializedValue::Vector(
+                        NonNull::new_unchecked(val.into_ptr()),
+                    ))
                 }
             }
         }
@@ -121,13 +142,17 @@ impl From<SerializedValue> for sea_query::Value {
             SerializedValue::BigInt(x) => Self::BigInt(Some(x)),
             SerializedValue::BigUnsigned(x) => Self::BigUnsigned(Some(x)),
             SerializedValue::Double(x) => Self::Double(Some(x)),
-            SerializedValue::String(x) => Self::String(Some(Box::new(unsafe { String::from_utf8_unchecked(x) }))),
+            SerializedValue::String(x) => {
+                Self::String(Some(Box::new(unsafe { String::from_utf8_unchecked(x) })))
+            }
             SerializedValue::Bytes(x) => Self::Bytes(Some(Box::new(x.to_vec()))),
             SerializedValue::Json(x) => Self::Json(Some(Box::new(x))),
             SerializedValue::ChronoDate(x) => Self::ChronoDate(Some(Box::new(x))),
             SerializedValue::ChronoTime(x) => Self::ChronoTime(Some(Box::new(x))),
             SerializedValue::ChronoDateTime(x) => Self::ChronoDateTime(Some(Box::new(x))),
-            SerializedValue::ChronoDateTimeWithTimeZone(x) => Self::ChronoDateTimeWithTimeZone(Some(Box::new(x))),
+            SerializedValue::ChronoDateTimeWithTimeZone(x) => {
+                Self::ChronoDateTimeWithTimeZone(Some(Box::new(x)))
+            }
             SerializedValue::Uuid(x) => Self::Uuid(Some(Box::new(x))),
             SerializedValue::Decimal(x) => Self::Decimal(Some(Box::new(x))),
             SerializedValue::Array(x) => {
@@ -183,10 +208,14 @@ impl From<sea_query::Value> for SerializedValue {
             sea_query::Value::ChronoDate(Some(x)) => Self::ChronoDate(*x),
             sea_query::Value::ChronoTime(Some(x)) => Self::ChronoTime(*x),
             sea_query::Value::ChronoDateTime(Some(x)) => Self::ChronoDateTime(*x),
-            sea_query::Value::ChronoDateTimeWithTimeZone(Some(x)) => Self::ChronoDateTimeWithTimeZone(*x),
+            sea_query::Value::ChronoDateTimeWithTimeZone(Some(x)) => {
+                Self::ChronoDateTimeWithTimeZone(*x)
+            }
             sea_query::Value::Uuid(Some(x)) => Self::Uuid(*x),
             sea_query::Value::Decimal(Some(x)) => Self::Decimal(*x),
-            sea_query::Value::Array(_, Some(x)) => Self::Array(x.into_iter().map(|x| x.into()).collect()),
+            sea_query::Value::Array(_, Some(x)) => {
+                Self::Array(x.into_iter().map(|x| x.into()).collect())
+            }
             sea_query::Value::Vector(Some(x)) => Self::Vector((*x).into()),
             _ => unreachable!(),
         }
