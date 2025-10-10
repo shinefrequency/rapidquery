@@ -13,6 +13,7 @@ mod macros;
 mod parameters;
 
 mod adaptation;
+mod backend;
 mod column;
 mod common;
 mod expression;
@@ -48,6 +49,9 @@ mod _lib {
 
     #[pymodule_export]
     use super::column::PyColumn;
+
+    #[pymodule_export]
+    use super::backend::{PyBackendMeta, PyMySQLBackend, PyPostgreSQLBackend, PySQLiteBackend};
 
     #[pymodule_init]
     fn init(m: &pyo3::Bound<'_, pyo3::types::PyModule>) -> pyo3::PyResult<()> {

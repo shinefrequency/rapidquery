@@ -56,3 +56,24 @@ macro_rules! typeerror {
         )
     };
 }
+
+#[macro_export]
+macro_rules! build_prepare_sql {
+    ($converter:expr => $backend:expr => $method:ident($value:expr, &mut $sql:expr)) => {{
+        let builder = match $converter($backend) {
+            Some(x) => x,
+            None => {
+                return Err(typeerror!(
+                    "expected BackendMeta, got {}",
+                    $backend.py(),
+                    $backend.as_ptr()
+                ))
+            }
+        };
+
+        let assert_unwind = std::panic::AssertUnwindSafe(|| builder.$method($value, &mut $sql));
+
+        std::panic::catch_unwind(assert_unwind)
+            .map_err(|_| pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("build failed"))
+    }};
+}

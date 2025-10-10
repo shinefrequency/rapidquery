@@ -6,10 +6,18 @@ pub struct PyExpr {
     pub(crate) inner: parking_lot::Mutex<sea_query::SimpleExpr>,
 }
 
+impl From<sea_query::SimpleExpr> for PyExpr {
+    fn from(value: sea_query::SimpleExpr) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(value),
+        }
+    }
+}
+
 impl PyExpr {
     #[inline]
     #[optimize(speed)]
-    fn from_adapted_value(py: pyo3::Python, value: &crate::adaptation::PyAdaptedValue) -> Self {
+    pub fn from_adapted_value(py: pyo3::Python, value: &crate::adaptation::PyAdaptedValue) -> Self {
         let simple_expr = {
             let mut lock = value.inner.lock();
             lock.create_simple_expr(py)
@@ -22,7 +30,7 @@ impl PyExpr {
 
     #[inline]
     #[optimize(speed)]
-    fn from_function_call(value: &super::function::PyFunctionCall) -> Self {
+    pub fn from_function_call(value: &super::function::PyFunctionCall) -> Self {
         let simple_expr = {
             let lock = value.inner.lock();
             sea_query::SimpleExpr::FunctionCall(lock.clone())
@@ -35,7 +43,7 @@ impl PyExpr {
 
     #[inline]
     #[optimize(speed)]
-    fn from_column_ref(value: sea_query::ColumnRef) -> Self {
+    pub fn from_column_ref(value: sea_query::ColumnRef) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Expr::column(value)),
         }
@@ -43,7 +51,7 @@ impl PyExpr {
 
     #[inline]
     #[optimize(speed)]
-    fn from_tuple<I>(values: I) -> Self
+    pub fn from_tuple<I>(values: I) -> Self
     where
         I: IntoIterator<Item = sea_query::SimpleExpr>,
     {
@@ -548,6 +556,17 @@ impl PyExpr {
         slf
     }
 
+    fn not(slf: pyo3::PyRef<'_, Self>) -> pyo3::PyRef<'_, Self> {
+        {
+            let mut lock = slf.inner.lock();
+
+            let result = sea_query::ExprTrait::not(lock.clone());
+            *lock = result;
+        }
+
+        slf
+    }
+
     fn __lshift__(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<Self>) -> pyo3::PyRef<'_, Self> {
         let other = other.get().inner.lock().clone();
 
@@ -652,6 +671,20 @@ impl PyExpr {
         slf
     }
 
+    fn get_json_field(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<Self>) -> pyo3::PyRef<'_, Self> {
+        let other = other.get().inner.lock().clone();
+
+        {
+            let mut lock = slf.inner.lock();
+
+            let result =
+                sea_query::extension::postgres::PgExpr::get_json_field(lock.clone(), other);
+            *lock = result;
+        }
+
+        slf
+    }
+
     fn cast_json_field(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<Self>) -> pyo3::PyRef<'_, Self> {
         let other = other.get().inner.lock().clone();
 
@@ -686,20 +719,6 @@ impl PyExpr {
             let mut lock = slf.inner.lock();
 
             let result = sea_query::extension::postgres::PgExpr::matches(lock.clone(), other);
-            *lock = result;
-        }
-
-        slf
-    }
-
-    fn get_json_field(slf: pyo3::PyRef<'_, Self>, other: pyo3::Py<Self>) -> pyo3::PyRef<'_, Self> {
-        let other = other.get().inner.lock().clone();
-
-        {
-            let mut lock = slf.inner.lock();
-
-            let result =
-                sea_query::extension::postgres::PgExpr::get_json_field(lock.clone(), other);
             *lock = result;
         }
 
@@ -785,13 +804,13 @@ impl PyExpr {
         slf
     }
 
-    fn in_(slf: pyo3::PyRef<'_, Self>, expr: Vec<pyo3::Py<Self>>) -> pyo3::PyRef<'_, Self> {
+    fn in_(slf: pyo3::PyRef<'_, Self>, other: Vec<pyo3::Py<Self>>) -> pyo3::PyRef<'_, Self> {
         {
             let mut lock = slf.inner.lock();
 
             let result = sea_query::ExprTrait::is_in(
                 lock.clone(),
-                expr.into_iter().map(|x| x.get().inner.lock().clone()),
+                other.into_iter().map(|x| x.get().inner.lock().clone()),
             );
             *lock = result;
         }
@@ -799,13 +818,13 @@ impl PyExpr {
         slf
     }
 
-    fn not_in(slf: pyo3::PyRef<'_, Self>, expr: Vec<pyo3::Py<Self>>) -> pyo3::PyRef<'_, Self> {
+    fn not_in(slf: pyo3::PyRef<'_, Self>, other: Vec<pyo3::Py<Self>>) -> pyo3::PyRef<'_, Self> {
         {
             let mut lock = slf.inner.lock();
 
             let result = sea_query::ExprTrait::is_not_in(
                 lock.clone(),
-                expr.into_iter().map(|x| x.get().inner.lock().clone()),
+                other.into_iter().map(|x| x.get().inner.lock().clone()),
             );
             *lock = result;
         }
@@ -825,12 +844,16 @@ impl PyExpr {
         }
     }
 
-    fn to_sql(&self) -> String {
-        let mut sql = String::with_capacity(10);
+    fn build(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {
         let lock = self.inner.lock();
 
-        sea_query::PostgresQueryBuilder.prepare_simple_expr_common(&lock, &mut sql);
-        sql
+        let mut sql = String::new();
+
+        build_prepare_sql!(
+            crate::backend::into_query_builder => backend => prepare_simple_expr(&lock, &mut sql)
+        )?;
+
+        Ok(sql)
     }
 
     fn __repr__(&self) -> String {

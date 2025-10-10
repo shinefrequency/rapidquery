@@ -224,13 +224,19 @@ impl PyFunctionCall {
         }
     }
 
-    fn to_sql(&self) -> String {
-        let mut sql = String::with_capacity(10);
+    fn build(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {
         let lock = self.inner.lock();
 
-        sea_query::PostgresQueryBuilder.prepare_function_name(lock.get_func(), &mut sql);
-        sea_query::PostgresQueryBuilder.prepare_function_arguments(&lock, &mut sql);
-        sql
+        let mut sql = String::new();
+
+        build_prepare_sql!(
+            crate::backend::into_query_builder => backend => prepare_function_name(&lock.get_func(), &mut sql)
+        )?;
+        build_prepare_sql!(
+            crate::backend::into_query_builder => backend => prepare_function_arguments(&lock, &mut sql)
+        )?;
+
+        Ok(sql)
     }
 
     fn __repr__(&self) -> String {

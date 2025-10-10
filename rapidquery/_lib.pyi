@@ -13,6 +13,18 @@ class _AsteriskType:
 
 ASTERISK: typing.Final[_AsteriskType]
 
+class BackendMeta:
+    pass
+
+class SQLiteBackend(BackendMeta):
+    pass
+
+class MySQLBackend(BackendMeta):
+    pass
+
+class PostgreSQLBackend(BackendMeta):
+    pass
+
 T = typing.TypeVar("T")
 
 class ColumnTypeMeta(typing.Generic[T]):
@@ -604,7 +616,7 @@ class AdaptedValue:
         """
         ...
 
-    def to_sql(self) -> str:
+    def build(self, backend: BackendMeta) -> str:
         """
         Converts the adapted value to its SQL string representation.
         """
@@ -842,19 +854,19 @@ class Expr:
         """
         ...
 
-    def in_(self, expr: typing.Sequence[Self]) -> Self:
+    def in_(self, other: typing.Sequence[Self]) -> Self:
         """
         Express a `IN` expression.
         """
         ...
 
-    def not_in(self, expr: typing.Sequence[Self]) -> Self:
+    def not_in(self, other: typing.Sequence[Self]) -> Self:
         """
         Express a `NOT IN` expression.
         """
         ...
 
-    def to_sql(self) -> str:
+    def build(self, backend: BackendMeta) -> str:
         """
         Converts the expression to its SQL string representation.
         """
@@ -901,7 +913,7 @@ class FunctionCall:
     def round(cls, expr: Expr) -> Self: ...
     @classmethod
     def md5(cls, expr: Expr) -> Self: ...
-    def to_sql(self) -> str: ...
+    def build(self, backend: BackendMeta) -> str: ...
     def __repr__(self) -> str: ...
 
 def all(arg1: Expr, *args: Expr) -> Expr:
@@ -975,4 +987,149 @@ class Column:
         generated: _ExprValue = ...,
         stored_generated: bool = ...,
     ) -> None: ...
+    def to_column_ref(self) -> ColumnRef: ...
+    def to_expr(self) -> Expr:
+        """
+        Shorthand for `Expr(self.to_column_ref())`
+        """
+        ...
+
+    def cast_as(self, value: str) -> Expr:
+        """
+        Express a `CAST AS` expression.
+        """
+        ...
+
+    def like(self, pattern: str, escape: typing.Optional[str] = ...) -> Expr:
+        """
+        Express a `LIKE` expression.
+        """
+        ...
+
+    def not_like(self, pattern: str, escape: typing.Optional[str] = ...) -> Expr:
+        """
+        Express a `NOT LIKE` expression.
+        """
+        ...
+
+    def __eq__(self, other: Expr) -> Expr: ...
+    def __ne__(self, other: Expr) -> Expr: ...
+    def __gt__(self, other: Expr) -> Expr: ...
+    def __ge__(self, other: Expr) -> Expr: ...
+    def __lt__(self, other: Expr) -> Expr: ...
+    def __le__(self, other: Expr) -> Expr: ...
+    def __add__(self, other: Expr) -> Expr: ...
+    def __sub__(self, other: Expr) -> Expr: ...
+    def __and__(self, other: Expr) -> Expr: ...
+    def __or__(self, other: Expr) -> Expr: ...
+    def __truediv__(self, other: Expr) -> Expr: ...
+    def is_(self, other: Expr) -> Expr:
+        """
+        Express a `IS` expression.
+        """
+        ...
+
+    def sqlite_matches(self, other: Expr) -> Expr:
+        """
+        Express an sqlite `MATCH` operator.
+        """
+        ...
+
+    def sqlite_glob(self, other: Expr) -> Expr:
+        """
+        Express an sqlite `GLOB` operator.
+        """
+        ...
+
+    def pg_concat(self, other: Expr) -> Expr:
+        """
+        Express an postgres concatenate (`||`) expression.
+        """
+        ...
+
+    def pg_contained(self, other: Expr) -> Expr:
+        """
+        Express an postgres fulltext search contained (`<@`) expression.
+        """
+        ...
+
+    def cast_json_field(self, other: Expr) -> Expr:
+        """
+        Express a postgres/sqlite retrieves JSON field and casts it to an appropriate SQL type (`->>`).
+        """
+        ...
+
+    def get_json_field(self, other: Expr) -> Expr:
+        """
+        Express a postgres/sqlite retrieves JSON field and casts it to an appropriate SQL type (`->`).
+        """
+        ...
+
+    def pg_contains(self, other: Expr) -> Expr:
+        """
+        Express an postgres fulltext search contains (`@>`) expression.
+        """
+        ...
+
+    def pg_matches(self, other: Expr) -> Expr:
+        """
+        Express an postgres fulltext search matches (`@@`) expression.
+        """
+        ...
+
+    def pg_ilike(self, other: Expr) -> Expr:
+        """
+        Express an postgres `ILIKE` expression.
+        """
+        ...
+
+    def pg_not_ilike(self, other: Expr) -> Expr:
+        """
+        Express an postgres `NOT ILIKE` expression.
+        """
+        ...
+
+    def is_not(self, other: Expr) -> Expr:
+        """
+        Express a `IS NOT` expression.
+        """
+        ...
+    def is_null(self) -> Expr:
+        """
+        Express a `IS NULL` expression.
+        """
+        ...
+    def is_not_null(self) -> Expr:
+        """
+        Express a `IS NOT NULL` expression.
+        """
+        ...
+    def __lshift__(self, other: Expr) -> Expr: ...
+    def __rshift__(self, other: Expr) -> Expr: ...
+    def __mod__(self, other: Expr) -> Expr: ...
+    def __mul__(self, other: Expr) -> Expr: ...
+    def between(self, a: Expr, b: Expr) -> Expr:
+        """
+        Express a `BETWEEN` expression.
+        """
+        ...
+
+    def not_between(self, a: Expr, b: Expr) -> Expr:
+        """
+        Express a `NOT BETWEEN` expression.
+        """
+        ...
+
+    def in_(self, other: typing.Sequence[Expr]) -> Expr:
+        """
+        Express a `IN` expression.
+        """
+        ...
+
+    def not_in(self, other: typing.Sequence[Expr]) -> Expr:
+        """
+        Express a `NOT IN` expression.
+        """
+        ...
+
     def __repr__(self) -> str: ...

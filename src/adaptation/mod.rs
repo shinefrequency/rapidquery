@@ -630,16 +630,17 @@ impl PyAdaptedValue {
         }
     }
 
-    fn to_sql(&self, py: pyo3::Python<'_>) -> String {
-        use sea_query::QueryBuilder;
-
+    fn build(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {
         let mut lock = self.inner.lock();
-        let expr = lock.create_simple_expr(py);
+        let expr = lock.create_simple_expr(backend.py());
 
         let mut sql = String::new();
-        sea_query::PostgresQueryBuilder.prepare_simple_expr_common(&expr, &mut sql);
 
-        sql
+        build_prepare_sql!(
+            crate::backend::into_query_builder => backend => prepare_simple_expr(&expr, &mut sql)
+        )?;
+
+        Ok(sql)
     }
 
     fn __repr__(&self) -> String {
