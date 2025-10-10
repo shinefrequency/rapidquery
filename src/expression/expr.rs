@@ -1,5 +1,4 @@
 use pyo3::types::PyAnyMethods;
-use sea_query::QueryBuilder;
 
 #[pyo3::pyclass(module = "rapidquery._lib", name = "Expr", frozen)]
 pub struct PyExpr {
@@ -857,10 +856,7 @@ impl PyExpr {
     }
 
     fn __repr__(&self) -> String {
-        let mut sql = String::from("<Expr ");
         let lock = self.inner.lock();
-
-        sea_query::PostgresQueryBuilder.prepare_simple_expr_common(&lock, &mut sql);
-        sql + ">"
+        format!("<Expr {:?}>", lock)
     }
 }

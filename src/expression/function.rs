@@ -1,5 +1,3 @@
-use sea_query::QueryBuilder;
-
 #[pyo3::pyclass(module = "rapidquery._lib", name = "FunctionCall", frozen)]
 pub struct PyFunctionCall {
     pub inner: parking_lot::Mutex<sea_query::FunctionCall>,
@@ -224,6 +222,11 @@ impl PyFunctionCall {
         }
     }
 
+    fn to_expr(&self) -> crate::expression::PyExpr {
+        let lock = self.inner.lock();
+        crate::expression::PyExpr::from(sea_query::SimpleExpr::FunctionCall(lock.clone()))
+    }
+
     fn build(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {
         let lock = self.inner.lock();
 
@@ -240,11 +243,7 @@ impl PyFunctionCall {
     }
 
     fn __repr__(&self) -> String {
-        let mut sql = String::from("<FunctionCall ");
         let lock = self.inner.lock();
-
-        sea_query::PostgresQueryBuilder.prepare_function_name(lock.get_func(), &mut sql);
-        sea_query::PostgresQueryBuilder.prepare_function_arguments(&lock, &mut sql);
-        sql + ">"
+        format!("<FunctionCall {:?}>", lock)
     }
 }
