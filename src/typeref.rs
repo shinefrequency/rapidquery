@@ -50,6 +50,7 @@ pub(crate) static mut ADAPTED_VALUE_TYPE: *mut pyo3::ffi::PyTypeObject = std::pt
 pub(crate) static mut COLUMN_REF_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut FUNCTION_CALL_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut EXPR_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
+pub(crate) static mut TABLE_NAME_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 
 // Python standard libraries types
 pub(crate) static mut STD_DECIMAL_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
@@ -132,6 +133,7 @@ fn _initialize_typeref(py: pyo3::Python) -> bool {
         COLUMN_REF_TYPE = get_type_object_for::<crate::common::PyColumnRef>(py);
         FUNCTION_CALL_TYPE = get_type_object_for::<crate::expression::PyFunctionCall>(py);
         EXPR_TYPE = get_type_object_for::<crate::expression::PyExpr>(py);
+        TABLE_NAME_TYPE = get_type_object_for::<crate::common::PyTableName>(py);
 
         STD_DECIMAL_TYPE = look_up_type_object(c"decimal", c"Decimal");
         STD_UUID_TYPE = look_up_type_object(c"uuid", c"UUID");

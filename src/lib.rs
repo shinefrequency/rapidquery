@@ -17,6 +17,7 @@ mod backend;
 mod column;
 mod common;
 mod expression;
+mod foreign_key;
 mod typeref;
 
 /// RapidQuery core module written in Rust
@@ -49,6 +50,9 @@ mod _lib {
 
     #[pymodule_export]
     use super::column::PyColumn;
+
+    #[pymodule_export]
+    use super::foreign_key::PyForeignKeySpec;
 
     #[pymodule_export]
     use super::backend::{PyBackendMeta, PyMySQLBackend, PyPostgreSQLBackend, PySQLiteBackend};
@@ -91,6 +95,12 @@ mod _lib {
         )?;
 
         m.add("ASTERISK", PyAsteriskType {})?;
+
+        m.add("FOREIGN_KEY_ACTION_CASCADE", sea_query::ForeignKeyAction::Cascade as u8)?;
+        m.add("FOREIGN_KEY_ACTION_RESTRICT", sea_query::ForeignKeyAction::Restrict as u8)?;
+        m.add("FOREIGN_KEY_ACTION_SET_NULL", sea_query::ForeignKeyAction::SetNull as u8)?;
+        m.add("FOREIGN_KEY_ACTION_NO_ACTION", sea_query::ForeignKeyAction::NoAction as u8)?;
+        m.add("FOREIGN_KEY_ACTION_SET_DEFAULT", sea_query::ForeignKeyAction::SetDefault as u8)?;
 
         super::typeref::initialize_typeref(m.py());
 

@@ -1,3 +1,4 @@
+use pyo3::types::PyAnyMethods;
 use sea_query::IntoIden;
 use std::str::FromStr;
 
@@ -277,6 +278,26 @@ impl FromStr for PyTableName {
             schema,
             database,
         })
+    }
+}
+
+impl PyTableName {
+    pub fn from_pyobject(value: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
+        unsafe {
+            if pyo3::ffi::Py_TYPE(value.as_ptr()) == crate::typeref::TABLE_NAME_TYPE {
+                Ok(value.clone().unbind())
+            } else if let Ok(x) = value.extract::<String>() {
+                let tb = crate::common::PyTableName::from_str(&x)?;
+
+                Ok(pyo3::Py::new(value.py(), tb)?.into_any())
+            } else {
+                return Err(typeerror!(
+                    "expected TableName or str, got {:?}",
+                    value.py(),
+                    value.as_ptr()
+                ));
+            }
+        }
     }
 }
 

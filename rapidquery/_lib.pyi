@@ -14,16 +14,72 @@ class _AsteriskType:
 ASTERISK: typing.Final[_AsteriskType]
 
 class BackendMeta:
-    pass
+    """
+    Base class for database backend implementations.
+
+    This abstract base class defines the interface for SQL query generation
+    backends that support different database systems (SQLite, MySQL, PostgreSQL).
+    Each backend handles the database-specific syntax and features for building
+    SQL statements dynamically.
+
+    Subclasses should implement database-specific query generation methods
+    and handle dialect differences for their respective database systems.
+    """
+
+    ...
 
 class SQLiteBackend(BackendMeta):
-    pass
+    """
+    SQLite-specific query builder and schema builder backend.
+
+    Implements SQL generation tailored for SQLite's syntax and capabilities.
+    Handles SQLite-specific features like:
+    - AUTOINCREMENT for primary keys
+    - SQLite data type mapping
+    - SQLite-specific index syntax
+    - Constraint handling differences
+
+    This backend generates SQL statements that are compatible with SQLite's
+    dialect and feature set.
+    """
+
+    ...
 
 class MySQLBackend(BackendMeta):
-    pass
+    """
+    MySQL-specific query builder and schema builder backend.
+
+    Implements SQL generation tailored for MySQL's syntax and capabilities.
+    Handles MySQL-specific features like:
+    - AUTO_INCREMENT for primary keys
+    - MySQL data type mapping and engine specifications
+    - MySQL index types (BTREE, HASH, FULLTEXT)
+    - Character set and collation handling
+    - MySQL-specific constraint syntax
+
+    This backend generates SQL statements that are compatible with MySQL's
+    dialect and feature set.
+    """
+
+    ...
 
 class PostgreSQLBackend(BackendMeta):
-    pass
+    """
+    PostgreSQL-specific query builder and schema builder backend.
+
+    Implements SQL generation tailored for PostgreSQL's syntax and capabilities.
+    Handles PostgreSQL-specific features like:
+    - SERIAL/BIGSERIAL for auto-increment columns
+    - Advanced PostgreSQL data types (JSONB, UUID, INET, CIDR, etc.)
+    - PostgreSQL index types and advanced indexing features
+    - Schema-qualified object names
+    - PostgreSQL-specific constraint and extension syntax
+
+    This backend generates SQL statements that are compatible with PostgreSQL's
+    dialect and feature set.
+    """
+
+    ...
 
 T = typing.TypeVar("T")
 
@@ -629,12 +685,12 @@ class ColumnRef:
     table: typing.Optional[str]
     schema: typing.Optional[str]
 
-    def __init__(
+    def __new__(
         self,
         name: str,
         table: typing.Optional[str] = ...,
         schema: typing.Optional[str] = ...,
-    ) -> None: ...
+    ) -> Self: ...
     @classmethod
     def parse(cls, string: str) -> "ColumnRef": ...
     def __eq__(self, other: "ColumnRef") -> bool: ...
@@ -973,7 +1029,7 @@ class Column:
     comment: typing.Optional[str]
     """Comment describing this column."""
 
-    def __init__(
+    def __new__(
         self,
         name: str,
         type: ColumnTypeMeta,
@@ -986,7 +1042,7 @@ class Column:
         default: _ExprValue = ...,
         generated: _ExprValue = ...,
         stored_generated: bool = ...,
-    ) -> None: ...
+    ) -> Self: ...
     def to_column_ref(self) -> ColumnRef: ...
     def to_expr(self) -> Expr:
         """
@@ -1134,7 +1190,6 @@ class Column:
 
     def __repr__(self) -> str: ...
 
-
 class TableName:
     """
     Represents a table name reference with optional schema, database, and alias.
@@ -1161,16 +1216,85 @@ class TableName:
     database: typing.Optional[str]
     """The database containing the table, if specified."""
 
-    def __init__(
+    def __new__(
         self,
         name: str,
         schema: typing.Optional[str] = ...,
         database: typing.Optional[str] = ...,
-    ) -> None: ...
+    ) -> Self: ...
     @classmethod
     def parse(cls, string: str) -> Self: ...
     def __eq__(self, other: Self) -> bool: ...
     def __ne__(self, other: Self) -> bool: ...
     def __copy__(self) -> Self: ...
     def copy(self) -> Self: ...
+    def __repr__(self) -> str: ...
+
+FOREIGN_KEY_ACTION_CASCADE: typing.Final[int]
+FOREIGN_KEY_ACTION_RESTRICT: typing.Final[int]
+FOREIGN_KEY_ACTION_SET_NULL: typing.Final[int]
+FOREIGN_KEY_ACTION_NO_ACTION: typing.Final[int]
+FOREIGN_KEY_ACTION_SET_DEFAULT: typing.Final[int]
+
+class ForeignKeySpec:
+    """
+    Specifies a foreign key relationship between tables.
+
+    Defines referential integrity constraints including:
+    - Source columns (in the child table)
+    - Target columns (in the parent table)
+    - Actions for updates and deletes (CASCADE, RESTRICT, SET NULL, etc.)
+    - Optional naming for the constraint
+
+    Foreign keys ensure data consistency by requiring that values in the
+    child table's columns match existing values in the parent table's columns.
+    """
+
+    from_columns: typing.List[str]
+    """
+    The column names in the child table that reference the parent.
+    
+    This attribute is immutable, so if you wanna update it, you should
+    set it again:
+
+        fk.from_columns.append("file_id") # Wrong ❌
+        fk.from_columns = fk.from_columns + ["file_id"] # Correct ✅
+    """
+
+    to_columns: typing.List[str]
+    """
+    The column names in the parent table being referenced.
+    
+    This attribute is immutable, so if you wanna update it, you should
+    set it again:
+
+        fk.to_columns.append("file_id") # Wrong ❌
+        fk.to_columns = fk.to_columns + ["file_id"] # Correct ✅
+    """
+
+    to_table: TableName
+    """The parent table being referenced."""
+
+    from_table: typing.Optional[TableName]
+    """The child table containing the foreign key (optional if inferred)."""
+
+    name: typing.Optional[str]
+    """The name of the foreign key constraint."""
+
+    on_delete: typing.Optional[int]
+    """Action to take when referenced row is deleted."""
+
+    on_update: typing.Optional[int]
+    """Action to take when referenced row is updated."""
+
+    def __new__(
+        self,
+        from_columns: typing.Sequence[str],
+        to_columns: typing.Sequence[str],
+        to_table: typing.Union[TableName, str],
+        from_table: typing.Union[TableName, str, None] = ...,
+        name: typing.Optional[str] = ...,
+        on_delete: typing.Optional[int] = ...,
+        on_update: typing.Optional[int] = ...,
+    ) -> None: ...
     def __repr__(self) -> str: ...
