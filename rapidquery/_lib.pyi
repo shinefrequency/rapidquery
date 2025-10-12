@@ -1133,3 +1133,44 @@ class Column:
         ...
 
     def __repr__(self) -> str: ...
+
+
+class TableName:
+    """
+    Represents a table name reference with optional schema, database, and alias.
+
+    This class encapsulates a table name that can include:
+    - The base table name
+    - Optional schema/namespace qualification
+    - Optional database qualification (for systems that support it)
+    - Optional alias for use in queries
+
+    Examples:
+
+        TableName("users")                           # Simple table name
+        TableName("users", schema="public")          # Schema-qualified table
+        TableName("users", schema="hr", database="company")  # Fully qualified
+    """
+
+    name: str
+    """The base name of the table."""
+
+    schema: typing.Optional[str]
+    """The schema/namespace containing the table, if specified."""
+
+    database: typing.Optional[str]
+    """The database containing the table, if specified."""
+
+    def __init__(
+        self,
+        name: str,
+        schema: typing.Optional[str] = ...,
+        database: typing.Optional[str] = ...,
+    ) -> None: ...
+    @classmethod
+    def parse(cls, string: str) -> Self: ...
+    def __eq__(self, other: Self) -> bool: ...
+    def __ne__(self, other: Self) -> bool: ...
+    def __copy__(self) -> Self: ...
+    def copy(self) -> Self: ...
+    def __repr__(self) -> str: ...
