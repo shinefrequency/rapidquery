@@ -44,7 +44,7 @@ mod _lib {
     use super::adaptation::PyAdaptedValue;
 
     #[pymodule_export]
-    use super::common::{PyAsteriskType, PyColumnRef, PyTableName, PyIndexColumn};
+    use super::common::{PyAsteriskType, PyColumnRef, PyIndexColumn, PyTableName};
 
     #[pymodule_export]
     use super::expression::{all, any, PyExpr, PyFunctionCall};
@@ -118,14 +118,8 @@ mod _lib {
             sea_query::ForeignKeyAction::SetDefault as u8,
         )?;
 
-        m.add(
-            "INDEX_ORDER_ASC",
-            sea_query::IndexOrder::Asc as u8,
-        )?;
-        m.add(
-            "INDEX_ORDER_DESC",
-            sea_query::IndexOrder::Desc as u8,
-        )?;
+        m.add("INDEX_ORDER_ASC", sea_query::IndexOrder::Asc as u8)?;
+        m.add("INDEX_ORDER_DESC", sea_query::IndexOrder::Desc as u8)?;
 
         super::typeref::initialize_typeref(m.py());
 
