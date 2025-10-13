@@ -1334,6 +1334,9 @@ class IndexColumn:
 
 _IndexType = typing.Literal["BTREE", "FULL TEXT", "HASH"]
 
+# Index Constants
+INDEX_ORDER_ASC: typing.Final[int]
+INDEX_ORDER_DESC: typing.Final[int]
 
 class Index:
     name: str
