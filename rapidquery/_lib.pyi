@@ -680,7 +680,27 @@ class AdaptedValue:
 
     def __repr__(self) -> str: ...
 
+import typing
+from typing import Self
+
 class ColumnRef:
+    """
+    Represents a reference to a database column with optional table and schema qualification.
+
+    This class is used to uniquely identify columns in SQL queries, supporting
+    schema-qualified and table-qualified column references.
+
+    Attributes:
+        name: The column name
+        table: The table name containing the column, if specified
+        schema: The schema name containing the table, if specified
+
+    Example:
+        >>> ColumnRef("id")
+        >>> ColumnRef("id", table="users")
+        >>> ColumnRef("id", table="users", schema="public")
+    """
+
     name: str
     table: typing.Optional[str]
     schema: typing.Optional[str]
@@ -690,12 +710,63 @@ class ColumnRef:
         name: str,
         table: typing.Optional[str] = ...,
         schema: typing.Optional[str] = ...,
-    ) -> Self: ...
+    ) -> Self:
+        """
+        Create a new ColumnRef instance.
+
+        Args:
+            name: The name of the column
+            table: The table name containing the column
+            schema: The schema name containing the table
+
+        Returns:
+            A new ColumnRef instance
+        """
+        ...
+
     @classmethod
-    def parse(cls, string: str) -> "ColumnRef": ...
-    def __eq__(self, other: "ColumnRef") -> bool: ...
-    def __ne__(self, other: "ColumnRef") -> bool: ...
-    def __repr__(self) -> str: ...
+    def parse(cls, string: str) -> "ColumnRef":
+        """
+        Parse a string representation of a column reference.
+
+        Supports formats like:
+        - "column_name"
+        - "table.column_name"
+        - "schema.table.column_name"
+
+        Args:
+            string: The string to parse
+
+        Returns:
+            A ColumnRef instance representing the parsed reference
+
+        Raises:
+            ValueError: If the string format is invalid
+        """
+        ...
+
+    def __eq__(self, other: "ColumnRef") -> bool:
+        """
+        Check equality with another ColumnRef.
+
+        Two ColumnRefs are equal if they have the same name, table, and schema.
+        """
+        ...
+
+    def __ne__(self, other: "ColumnRef") -> bool:
+        """
+        Check inequality with another ColumnRef.
+        """
+        ...
+
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the ColumnRef.
+
+        Returns:
+            A string that could be used to recreate this ColumnRef
+        """
+        ...
 
 _ExprValue = typing.Union[
     Self,
@@ -708,28 +779,84 @@ _ExprValue = typing.Union[
 
 class Expr:
     """
-    Represents a Simple Expression in SQL.
+    Represents a SQL expression that can be built into SQL code.
+
+    This class provides a fluent interface for constructing complex SQL expressions
+    in a database-agnostic way. It supports arithmetic operations, comparisons,
+    logical operations, and database-specific functions.
+
+    The class automatically handles SQL injection protection and proper quoting
+    when building the final SQL statement.
+
+    Example::
+        # Basic comparison
+        e = Expr(1) > Expr(2)
+        e.build(MySQLBackend())
+        # Result: 1 > 2
+
+        # IN clause with tuple
+        e = Expr.col("id").in_(Expr((1, 2, 3)))
+        e.build(MySQLBackend())
+        # Result: "id" IN (1, 2, 3)
+
+        # Complex expression with functions
+        e = Expr.func(FunctionCall.upper(Expr.col("name"))) == "JOHN"
+        e.build(PostgreSQLBackend())
+        # Result: UPPER("name") = 'JOHN'
     """
 
-    def __new__(cls, value: _ExprValue, /) -> Self: ...
+    def __new__(cls, value: _ExprValue, /) -> Self:
+        """
+        Create a new expression from a value.
+
+        Args:
+            value: The value to convert to an expression. Can be a primitive
+                  value, ColumnRef, AdaptedValue, or another Expr.
+
+        Returns:
+            A new Expr instance representing the value
+        """
+        ...
+
     @classmethod
     def val(cls, value: AdaptedValue) -> Self:
         """
-        Express a `AdaptedValue`, returning a `Expr`.
+        Create an expression from an AdaptedValue.
+
+        AdaptedValues are values that have been adapted for safe use in SQL,
+        such as properly escaped strings or formatted dates.
+
+        Args:
+            value: The adapted value to convert to an expression
+
+        Returns:
+            An Expr representing the adapted value
         """
         ...
 
     @classmethod
     def func(cls, value: FunctionCall) -> Self:
         """
-        Express a `FunctionCall`, returning a `Expr`.
+        Create an expression from a FunctionCall.
+
+        Args:
+            value: The function call to convert to an expression
+
+        Returns:
+            An Expr representing the function call
         """
         ...
 
     @classmethod
     def col(cls, name: typing.Union[str, ColumnRef]) -> Self:
         """
-        Express the target column without table prefix, returning a `Expr`.
+        Create a column reference expression.
+
+        Args:
+            name: The column name or ColumnRef to reference
+
+        Returns:
+            An Expr representing the column reference
         """
         ...
 
@@ -738,249 +865,774 @@ class Expr:
         cls, values: typing.Union[typing.Set[Self], typing.List[Self], typing.Tuple[Self]]
     ) -> Self:
         """
-        Wraps tuple of `Expr`, can be used for tuple comparison
+        Create a tuple expression for tuple comparisons.
+
+        Args:
+            values: A collection of expressions to include in the tuple
+
+        Returns:
+            An Expr representing a SQL tuple
+
+        Example:
+            >>> Expr.tuple([Expr.col("id"), Expr.col("name")])
+            # Can be used in: WHERE (id, name) IN ((1, 'a'), (2, 'b'))
         """
         ...
 
     @classmethod
     def asterisk(cls) -> Self:
         """
-        Shorthand for `Expr.col("*")`
+        Create a wildcard expression for SELECT * queries.
+
+        Returns:
+            An Expr representing the asterisk wildcard
         """
         ...
 
     @classmethod
     def custom(cls, value: str) -> Self:
         """
-        Express any custom expression in `str`.
+        Create an expression from a custom SQL string.
+
+        Warning: This method does not escape the input, so it should only
+        be used with trusted strings to avoid SQL injection vulnerabilities.
+
+        Args:
+            value: The raw SQL string to use as an expression
+
+        Returns:
+            An Expr representing the custom SQL
         """
         ...
 
     @classmethod
     def current_date(cls) -> Self:
         """
-        Keyword `CURRENT_DATE`.
+        Create an expression for the CURRENT_DATE SQL function.
+
+        Returns:
+            An Expr representing CURRENT_DATE
         """
         ...
 
     @classmethod
     def current_time(cls) -> Self:
         """
-        Keyword `CURRENT_TIME`.
+        Create an expression for the CURRENT_TIME SQL function.
+
+        Returns:
+            An Expr representing CURRENT_TIME
         """
         ...
 
     @classmethod
     def current_timestamp(cls) -> Self:
         """
-        Keyword `CURRENT_TIMESTAMP`.
+        Create an expression for the CURRENT_TIMESTAMP SQL function.
+
+        Returns:
+            An Expr representing CURRENT_TIMESTAMP
         """
         ...
 
     @classmethod
     def null(cls) -> Self:
         """
-        Keyword `NULL`.
+        Create an expression representing the NULL value.
+
+        Returns:
+            An Expr representing NULL
         """
         ...
 
     def cast_as(self, value: str) -> Self:
         """
-        Express a `CAST AS` expression.
+        Create a CAST expression to convert to a specific SQL type.
+
+        Args:
+            value: The target SQL type name (e.g., 'INTEGER', 'VARCHAR(255)')
+
+        Returns:
+            A new Expr representing the cast operation
         """
         ...
 
     def like(self, pattern: str, escape: typing.Optional[str] = ...) -> Self:
         """
-        Express a `LIKE` expression.
+        Create a LIKE pattern matching expression.
+
+        Args:
+            pattern: The pattern to match against
+            escape: Optional escape character for wildcards in the pattern
+
+        Returns:
+            A new Expr representing the LIKE operation
         """
         ...
 
     def not_like(self, pattern: str, escape: typing.Optional[str] = ...) -> Self:
         """
-        Express a `NOT LIKE` expression.
+        Create a NOT LIKE pattern matching expression.
+
+        Args:
+            pattern: The pattern that should not match
+            escape: Optional escape character for wildcards in the pattern
+
+        Returns:
+            A new Expr representing the NOT LIKE operation
         """
         ...
 
-    def __eq__(self, other: Self) -> Self: ...
-    def __ne__(self, other: Self) -> Self: ...
-    def __gt__(self, other: Self) -> Self: ...
-    def __ge__(self, other: Self) -> Self: ...
-    def __lt__(self, other: Self) -> Self: ...
-    def __le__(self, other: Self) -> Self: ...
-    def __add__(self, other: Self) -> Self: ...
-    def __sub__(self, other: Self) -> Self: ...
-    def __and__(self, other: Self) -> Self: ...
-    def __or__(self, other: Self) -> Self: ...
-    def __truediv__(self, other: Self) -> Self: ...
+    def __eq__(self, other: Self) -> Self:
+        """
+        Create an equality comparison expression.
+        """
+        ...
+
+    def __ne__(self, other: Self) -> Self:
+        """
+        Create an inequality comparison expression.
+        """
+        ...
+
+    def __gt__(self, other: Self) -> Self:
+        """
+        Create a greater-than comparison expression.
+        """
+        ...
+
+    def __ge__(self, other: Self) -> Self:
+        """
+        Create a greater-than-or-equal comparison expression.
+        """
+        ...
+
+    def __lt__(self, other: Self) -> Self:
+        """
+        Create a less-than comparison expression.
+        """
+        ...
+
+    def __le__(self, other: Self) -> Self:
+        """
+        Create a less-than-or-equal comparison expression.
+        """
+        ...
+
+    def __add__(self, other: Self) -> Self:
+        """
+        Create an addition expression.
+        """
+        ...
+
+    def __sub__(self, other: Self) -> Self:
+        """
+        Create a subtraction expression.
+        """
+        ...
+
+    def __and__(self, other: Self) -> Self:
+        """
+        Create a logical AND expression.
+        """
+        ...
+
+    def __or__(self, other: Self) -> Self:
+        """
+        Create a logical OR expression.
+        """
+        ...
+
+    def __truediv__(self, other: Self) -> Self:
+        """
+        Create a division expression.
+        """
+        ...
+
     def is_(self, other: Self) -> Self:
         """
-        Express a `IS` expression.
+        Create an IS comparison expression (for NULL comparisons).
+
+        Typically used with NULL: column.is_(Expr.null())
+
+        Args:
+            other: The expression to compare with
+
+        Returns:
+            A new Expr representing the IS comparison
         """
         ...
 
     def sqlite_matches(self, other: Self) -> Self:
         """
-        Express an sqlite `MATCH` operator.
+        Create a SQLite MATCH expression for full-text search.
+
+        Args:
+            other: The expression to match against
+
+        Returns:
+            A new Expr representing the MATCH operation
         """
         ...
 
     def sqlite_glob(self, other: Self) -> Self:
         """
-        Express an sqlite `GLOB` operator.
+        Create a SQLite GLOB expression for pattern matching.
+
+        Args:
+            other: The glob pattern to match against
+
+        Returns:
+            A new Expr representing the GLOB operation
         """
         ...
 
     def pg_concat(self, other: Self) -> Self:
         """
-        Express an postgres concatenate (`||`) expression.
+        Create a PostgreSQL concatenation expression using || operator.
+
+        Args:
+            other: The expression to concatenate with
+
+        Returns:
+            A new Expr representing the concatenation
         """
         ...
 
     def pg_contained(self, other: Self) -> Self:
         """
-        Express an postgres fulltext search contained (`<@`) expression.
+        Create a PostgreSQL contained expression using <@ operator.
+
+        Used for array and range containment checks.
+
+        Args:
+            other: The expression to check containment against
+
+        Returns:
+            A new Expr representing the contained operation
         """
         ...
 
     def cast_json_field(self, other: Self) -> Self:
         """
-        Express a postgres/sqlite retrieves JSON field and casts it to an appropriate SQL type (`->>`).
+        Extract and cast a JSON field to appropriate SQL type using ->> operator.
+
+        This operator returns the JSON field as text and can be cast to other types.
+
+        Args:
+            other: The JSON field path/name to extract
+
+        Returns:
+            A new Expr representing the JSON field extraction and casting
         """
         ...
 
     def get_json_field(self, other: Self) -> Self:
         """
-        Express a postgres/sqlite retrieves JSON field and casts it to an appropriate SQL type (`->`).
+        Extract a JSON field using -> operator (returns JSON type).
+
+        Args:
+            other: The JSON field path/name to extract
+
+        Returns:
+            A new Expr representing the JSON field extraction
         """
         ...
 
     def pg_contains(self, other: Self) -> Self:
         """
-        Express an postgres fulltext search contains (`@>`) expression.
+        Create a PostgreSQL contains expression using @> operator.
+
+        Used for array and range containment checks.
+
+        Args:
+            other: The expression to check if it is contained
+
+        Returns:
+            A new Expr representing the contains operation
         """
         ...
 
     def pg_matches(self, other: Self) -> Self:
         """
-        Express an postgres fulltext search matches (`@@`) expression.
+        Create a PostgreSQL full-text search matches expression using @@ operator.
+
+        Args:
+            other: The full-text search query
+
+        Returns:
+            A new Expr representing the full-text match operation
         """
         ...
 
     def pg_ilike(self, other: Self) -> Self:
         """
-        Express an postgres `ILIKE` expression.
+        Create a PostgreSQL case-insensitive LIKE expression.
+
+        Args:
+            other: The pattern to match against
+
+        Returns:
+            A new Expr representing the ILIKE operation
         """
         ...
 
     def pg_not_ilike(self, other: Self) -> Self:
         """
-        Express an postgres `NOT ILIKE` expression.
+        Create a PostgreSQL case-insensitive NOT LIKE expression.
+
+        Args:
+            other: The pattern that should not match
+
+        Returns:
+            A new Expr representing the NOT ILIKE operation
         """
         ...
 
     def is_not(self, other: Self) -> Self:
         """
-        Express a `IS NOT` expression.
+        Create an IS NOT comparison expression.
+
+        Args:
+            other: The expression to compare with
+
+        Returns:
+            A new Expr representing the IS NOT comparison
         """
         ...
+
     def is_null(self) -> Self:
         """
-        Express a `IS NULL` expression.
+        Create an IS NULL expression.
+
+        Returns:
+            A new Expr representing the IS NULL check
         """
         ...
+
     def is_not_null(self) -> Self:
         """
-        Express a `IS NOT NULL` expression.
+        Create an IS NOT NULL expression.
+
+        Returns:
+            A new Expr representing the IS NOT NULL check
         """
         ...
-    def __lshift__(self, other: Self) -> Self: ...
-    def __rshift__(self, other: Self) -> Self: ...
-    def __mod__(self, other: Self) -> Self: ...
-    def __mul__(self, other: Self) -> Self: ...
+
+    def __lshift__(self, other: Self) -> Self:
+        """
+        Create a bitwise left shift expression.
+        """
+        ...
+
+    def __rshift__(self, other: Self) -> Self:
+        """
+        Create a bitwise right shift expression.
+        """
+        ...
+
+    def __mod__(self, other: Self) -> Self:
+        """
+        Create a modulo expression.
+        """
+        ...
+
+    def __mul__(self, other: Self) -> Self:
+        """
+        Create a multiplication expression.
+        """
+        ...
+
     def between(self, a: Self, b: Self) -> Self:
         """
-        Express a `BETWEEN` expression.
+        Create a BETWEEN range comparison expression.
+
+        Args:
+            a: The lower bound of the range
+            b: The upper bound of the range
+
+        Returns:
+            A new Expr representing the BETWEEN operation
         """
         ...
 
     def not_between(self, a: Self, b: Self) -> Self:
         """
-        Express a `NOT BETWEEN` expression.
+        Create a NOT BETWEEN range comparison expression.
+
+        Args:
+            a: The lower bound of the range
+            b: The upper bound of the range
+
+        Returns:
+            A new Expr representing the NOT BETWEEN operation
         """
         ...
 
     def in_(self, other: typing.Sequence[Self]) -> Self:
         """
-        Express a `IN` expression.
+        Create an IN membership expression.
+
+        Args:
+            other: A sequence of expressions to check membership against
+
+        Returns:
+            A new Expr representing the IN operation
         """
         ...
 
     def not_in(self, other: typing.Sequence[Self]) -> Self:
         """
-        Express a `NOT IN` expression.
+        Create a NOT IN membership expression.
+
+        Args:
+            other: A sequence of expressions to check non-membership against
+
+        Returns:
+            A new Expr representing the NOT IN operation
         """
         ...
 
     def build(self, backend: BackendMeta) -> str:
         """
-        Converts the expression to its SQL string representation.
+        Convert the expression to its SQL string representation.
+
+        Args:
+            backend: The database backend that determines SQL dialect and formatting
+
+        Returns:
+            A SQL string representation of the expression
         """
         ...
 
-    def __repr__(self) -> str: ...
+    def __repr__(self) -> str:
+        """
+        Return a developer-friendly string representation.
+
+        Returns:
+            A string that could be used to recreate this expression
+        """
+        ...
 
 class FunctionCall:
-    def __new__(cls, name: str) -> Self: ...
-    def arg(self, arg: Expr) -> Self: ...
+    """
+    Represents a SQL function call that can be used in expressions.
+
+    This class provides a type-safe way to construct SQL function calls
+    with proper argument handling and database dialect support.
+    """
+
+    def __new__(cls, name: str) -> Self:
+        """
+        Create a new function call with the given name.
+
+        Args:
+            name: The name of the SQL function
+
+        Returns:
+            A new FunctionCall instance
+        """
+        ...
+
+    def arg(self, arg: Expr) -> Self:
+        """
+        Add an argument to the function call.
+
+        Args:
+            arg: The expression to add as an argument
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
     @classmethod
-    def min(cls, expr: Expr) -> Self: ...
+    def min(cls, expr: Expr) -> Self:
+        """
+        Create a MIN aggregate function call.
+
+        Args:
+            expr: The expression to find the minimum of
+
+        Returns:
+            A FunctionCall representing MIN(expr)
+        """
+        ...
+
     @classmethod
-    def max(cls, expr: Expr) -> Self: ...
+    def max(cls, expr: Expr) -> Self:
+        """
+        Create a MAX aggregate function call.
+
+        Args:
+            expr: The expression to find the maximum of
+
+        Returns:
+            A FunctionCall representing MAX(expr)
+        """
+        ...
+
     @classmethod
-    def abs(cls, expr: Expr) -> Self: ...
+    def abs(cls, expr: Expr) -> Self:
+        """
+        Create an ABS absolute value function call.
+
+        Args:
+            expr: The expression to get the absolute value of
+
+        Returns:
+            A FunctionCall representing ABS(expr)
+        """
+        ...
+
     @classmethod
-    def avg(cls, expr: Expr) -> Self: ...
+    def avg(cls, expr: Expr) -> Self:
+        """
+        Create an AVG average function call.
+
+        Args:
+            expr: The expression to calculate the average of
+
+        Returns:
+            A FunctionCall representing AVG(expr)
+        """
+        ...
+
     @classmethod
-    def count(cls, expr: Expr) -> Self: ...
+    def count(cls, expr: Expr) -> Self:
+        """
+        Create a COUNT aggregate function call.
+
+        Args:
+            expr: The expression to count
+
+        Returns:
+            A FunctionCall representing COUNT(expr)
+        """
+        ...
+
     @classmethod
-    def count_distinct(cls, expr: Expr) -> Self: ...
+    def count_distinct(cls, expr: Expr) -> Self:
+        """
+        Create a COUNT(DISTINCT ...) aggregate function call.
+
+        Args:
+            expr: The expression to count distinct values of
+
+        Returns:
+            A FunctionCall representing COUNT(DISTINCT expr)
+        """
+        ...
+
     @classmethod
-    def if_null(cls, expr: Expr) -> Self: ...
+    def if_null(cls, expr: Expr) -> Self:
+        """
+        Create an IFNULL/COALESCE function call (database-dependent).
+
+        Args:
+            expr: The expression to check for NULL
+
+        Returns:
+            A FunctionCall representing the NULL-checking function
+        """
+        ...
+
     @classmethod
-    def greatest(cls, exprs: typing.Sequence[Expr]) -> Self: ...
+    def greatest(cls, exprs: typing.Sequence[Expr]) -> Self:
+        """
+        Create a GREATEST function call returning the largest value.
+
+        Args:
+            exprs: Sequence of expressions to compare
+
+        Returns:
+            A FunctionCall representing GREATEST(expr1, expr2, ...)
+        """
+        ...
+
     @classmethod
-    def least(cls, exprs: typing.Sequence[Expr]) -> Self: ...
+    def least(cls, exprs: typing.Sequence[Expr]) -> Self:
+        """
+        Create a LEAST function call returning the smallest value.
+
+        Args:
+            exprs: Sequence of expressions to compare
+
+        Returns:
+            A FunctionCall representing LEAST(expr1, expr2, ...)
+        """
+        ...
+
     @classmethod
-    def char_length(cls, expr: Expr) -> Self: ...
+    def char_length(cls, expr: Expr) -> Self:
+        """
+        Create a CHAR_LENGTH/LENGTH function call.
+
+        Args:
+            expr: The string expression to measure
+
+        Returns:
+            A FunctionCall representing CHAR_LENGTH(expr)
+        """
+        ...
+
     @classmethod
-    def coalesce(cls, exprs: typing.Sequence[Expr]) -> Self: ...
+    def coalesce(cls, exprs: typing.Sequence[Expr]) -> Self:
+        """
+        Create a COALESCE function call returning first non-NULL value.
+
+        Args:
+            exprs: Sequence of expressions to check
+
+        Returns:
+            A FunctionCall representing COALESCE(expr1, expr2, ...)
+        """
+        ...
+
     @classmethod
-    def lower(cls, expr: Expr) -> Self: ...
+    def lower(cls, expr: Expr) -> Self:
+        """
+        Create a LOWER case conversion function call.
+
+        Args:
+            expr: The string expression to convert to lowercase
+
+        Returns:
+            A FunctionCall representing LOWER(expr)
+        """
+        ...
+
     @classmethod
-    def upper(cls, expr: Expr) -> Self: ...
+    def upper(cls, expr: Expr) -> Self:
+        """
+        Create an UPPER case conversion function call.
+
+        Args:
+            expr: The string expression to convert to uppercase
+
+        Returns:
+            A FunctionCall representing UPPER(expr)
+        """
+        ...
+
     @classmethod
-    def bit_and(cls, expr: Expr) -> Self: ...
+    def bit_and(cls, expr: Expr) -> Self:
+        """
+        Create a BIT_AND aggregate function call.
+
+        Args:
+            expr: The expression for bitwise AND operation
+
+        Returns:
+            A FunctionCall representing BIT_AND(expr)
+        """
+        ...
+
     @classmethod
-    def bit_or(cls, expr: Expr) -> Self: ...
+    def bit_or(cls, expr: Expr) -> Self:
+        """
+        Create a BIT_OR aggregate function call.
+
+        Args:
+            expr: The expression for bitwise OR operation
+
+        Returns:
+            A FunctionCall representing BIT_OR(expr)
+        """
+        ...
+
     @classmethod
-    def random(cls) -> Self: ...
+    def random(cls) -> Self:
+        """
+        Create a RANDOM/RAND function call.
+
+        Returns:
+            A FunctionCall representing the random number function
+        """
+        ...
+
     @classmethod
-    def round(cls, expr: Expr) -> Self: ...
+    def round(cls, expr: Expr) -> Self:
+        """
+        Create a ROUND function call.
+
+        Args:
+            expr: The numeric expression to round
+
+        Returns:
+            A FunctionCall representing ROUND(expr)
+        """
+        ...
+
     @classmethod
-    def md5(cls, expr: Expr) -> Self: ...
-    def build(self, backend: BackendMeta) -> str: ...
-    def __repr__(self) -> str: ...
+    def md5(cls, expr: Expr) -> Self:
+        """
+        Create an MD5 hash function call.
+
+        Args:
+            expr: The expression to hash
+
+        Returns:
+            A FunctionCall representing MD5(expr)
+        """
+        ...
+
+    def build(self, backend: BackendMeta) -> str:
+        """
+        Convert the function call to its SQL string representation.
+
+        Args:
+            backend: The database backend that determines SQL dialect
+
+        Returns:
+            A SQL string representation of the function call
+        """
+        ...
+
+    def __repr__(self) -> str:
+        """
+        Return a developer-friendly string representation.
+
+        Returns:
+            A string that could be used to recreate this function call
+        """
+        ...
 
 def all(arg1: Expr, *args: Expr) -> Expr:
     """
-    Create a condition that is false if any of the conditions is false.
+    Create a logical AND condition that is true only if all conditions are true.
+
+    This is equivalent to SQL's AND operator applied to multiple expressions.
+
+    Args:
+        arg1: The first condition
+        *args: Additional conditions to combine
+
+    Returns:
+        An Expr representing the logical AND of all input expressions
+
+    Example:
+        >>> all(Expr.col("age") > 18, Expr.col("status") == "active")
+        # Equivalent to: age > 18 AND status = 'active'
     """
     ...
 
 def any(arg1: Expr, *args: Expr) -> Expr:
     """
-    Create a condition that is true if any of the conditions is true.
+    Create a logical OR condition that is true if any condition is true.
+
+    This is equivalent to SQL's OR operator applied to multiple expressions.
+
+    Args:
+        arg1: The first condition
+        *args: Additional conditions to combine
+
+    Returns:
+        An Expr representing the logical OR of all input expressions
+
+    Example:
+        >>> any(Expr.col("status") == "pending", Expr.col("status") == "approved")
+        # Equivalent to: status = 'pending' OR status = 'approved'
     """
     ...
 
@@ -992,11 +1644,17 @@ class Column:
     - Column name and data type
     - Constraints (primary key, unique, nullable)
     - Auto-increment behavior
+    - Default values and generated columns
     - Comments and extra specifications
 
     This class is used within TableCreateStatement to specify the structure
     of table columns. It encapsulates all the properties that define how
     a column behaves and what data it can store.
+
+    Example:
+        >>> Column("id", Integer, primary_key=True, auto_increment=True)
+        >>> Column("name", String(255), nullable=False, default="unknown")
+        >>> Column("created_at", Timestamp, default=Expr.current_timestamp())
     """
 
     name: str
@@ -1024,7 +1682,10 @@ class Column:
     """Default value for this column."""
 
     generated: typing.Optional[Expr]
+    """Expression for generated column values."""
+
     stored_generated: bool
+    """Whether the generated column is STORED (vs VIRTUAL)."""
 
     comment: typing.Optional[str]
     """Comment describing this column."""
@@ -1042,153 +1703,292 @@ class Column:
         default: _ExprValue = ...,
         generated: _ExprValue = ...,
         stored_generated: bool = ...,
-    ) -> Self: ...
-    def to_column_ref(self) -> ColumnRef: ...
+    ) -> Self:
+        """
+        Create a new Column definition.
+
+        Args:
+            name: The column name
+            type: The column data type
+            primary_key: Whether this is a primary key column
+            unique: Whether this column has a unique constraint
+            nullable: Whether NULL values are allowed
+            auto_increment: Whether the column auto-increments
+            extra: Additional column specifications
+            comment: Column description comment
+            default: Default value expression
+            generated: Generation expression for computed columns
+            stored_generated: Whether computed column is stored physically
+
+        Returns:
+            A new Column instance
+        """
+        ...
+
+    def to_column_ref(self) -> ColumnRef:
+        """
+        Convert this column definition to a ColumnRef.
+
+        Returns:
+            A ColumnRef referencing this column
+        """
+        ...
+
     def to_expr(self) -> Expr:
         """
+        Convert this column to an expression.
+
         Shorthand for `Expr(self.to_column_ref())`
+
+        Returns:
+            An Expr representing this column
         """
         ...
 
     def cast_as(self, value: str) -> Expr:
         """
-        Express a `CAST AS` expression.
+        Create a CAST expression for this column.
+
+        Args:
+            value: The target SQL type name
+
+        Returns:
+            An Expr representing CAST(column AS type)
         """
         ...
 
     def like(self, pattern: str, escape: typing.Optional[str] = ...) -> Expr:
         """
-        Express a `LIKE` expression.
+        Create a LIKE expression using this column.
+
+        Args:
+            pattern: The pattern to match against
+            escape: Optional escape character for wildcards
+
+        Returns:
+            An Expr representing column LIKE pattern
         """
         ...
 
     def not_like(self, pattern: str, escape: typing.Optional[str] = ...) -> Expr:
         """
-        Express a `NOT LIKE` expression.
+        Create a NOT LIKE expression using this column.
+
+        Args:
+            pattern: The pattern that should not match
+            escape: Optional escape character for wildcards
+
+        Returns:
+            An Expr representing column NOT LIKE pattern
         """
         ...
 
-    def __eq__(self, other: Expr) -> Expr: ...
-    def __ne__(self, other: Expr) -> Expr: ...
-    def __gt__(self, other: Expr) -> Expr: ...
-    def __ge__(self, other: Expr) -> Expr: ...
-    def __lt__(self, other: Expr) -> Expr: ...
-    def __le__(self, other: Expr) -> Expr: ...
-    def __add__(self, other: Expr) -> Expr: ...
-    def __sub__(self, other: Expr) -> Expr: ...
-    def __and__(self, other: Expr) -> Expr: ...
-    def __or__(self, other: Expr) -> Expr: ...
-    def __truediv__(self, other: Expr) -> Expr: ...
+    def __eq__(self, other: Expr) -> Expr:
+        """
+        Create equality comparison with this column.
+        """
+        ...
+
+    def __ne__(self, other: Expr) -> Expr:
+        """
+        Create inequality comparison with this column.
+        """
+        ...
+
+    def __gt__(self, other: Expr) -> Expr:
+        """
+        Create greater-than comparison with this column.
+        """
+        ...
+
+    def __ge__(self, other: Expr) -> Expr:
+        """
+        Create greater-than-or-equal comparison with this column.
+        """
+        ...
+
+    def __lt__(self, other: Expr) -> Expr:
+        """
+        Create less-than comparison with this column.
+        """
+        ...
+
+    def __le__(self, other: Expr) -> Expr:
+        """
+        Create less-than-or-equal comparison with this column.
+        """
+        ...
+
+    def __add__(self, other: Expr) -> Expr:
+        """
+        Create addition expression with this column.
+        """
+        ...
+
+    def __sub__(self, other: Expr) -> Expr:
+        """
+        Create subtraction expression with this column.
+        """
+        ...
+
+    def __and__(self, other: Expr) -> Expr:
+        """
+        Create logical AND expression with this column.
+        """
+        ...
+
+    def __or__(self, other: Expr) -> Expr:
+        """
+        Create logical OR expression with this column.
+        """
+        ...
+
+    def __truediv__(self, other: Expr) -> Expr:
+        """
+        Create division expression with this column.
+        """
+        ...
+
     def is_(self, other: Expr) -> Expr:
         """
-        Express a `IS` expression.
+        Create IS comparison with this column.
         """
         ...
 
     def sqlite_matches(self, other: Expr) -> Expr:
         """
-        Express an sqlite `MATCH` operator.
+        Create SQLite MATCH expression with this column.
         """
         ...
 
     def sqlite_glob(self, other: Expr) -> Expr:
         """
-        Express an sqlite `GLOB` operator.
+        Create SQLite GLOB expression with this column.
         """
         ...
 
     def pg_concat(self, other: Expr) -> Expr:
         """
-        Express an postgres concatenate (`||`) expression.
+        Create PostgreSQL concatenation with this column.
         """
         ...
 
     def pg_contained(self, other: Expr) -> Expr:
         """
-        Express an postgres fulltext search contained (`<@`) expression.
+        Create PostgreSQL contained expression with this column.
         """
         ...
 
     def cast_json_field(self, other: Expr) -> Expr:
         """
-        Express a postgres/sqlite retrieves JSON field and casts it to an appropriate SQL type (`->>`).
+        Extract and cast JSON field from this column.
         """
         ...
 
     def get_json_field(self, other: Expr) -> Expr:
         """
-        Express a postgres/sqlite retrieves JSON field and casts it to an appropriate SQL type (`->`).
+        Extract JSON field from this column.
         """
         ...
 
     def pg_contains(self, other: Expr) -> Expr:
         """
-        Express an postgres fulltext search contains (`@>`) expression.
+        Create PostgreSQL contains expression with this column.
         """
         ...
 
     def pg_matches(self, other: Expr) -> Expr:
         """
-        Express an postgres fulltext search matches (`@@`) expression.
+        Create PostgreSQL full-text match with this column.
         """
         ...
 
     def pg_ilike(self, other: Expr) -> Expr:
         """
-        Express an postgres `ILIKE` expression.
+        Create PostgreSQL ILIKE expression with this column.
         """
         ...
 
     def pg_not_ilike(self, other: Expr) -> Expr:
         """
-        Express an postgres `NOT ILIKE` expression.
+        Create PostgreSQL NOT ILIKE expression with this column.
         """
         ...
 
     def is_not(self, other: Expr) -> Expr:
         """
-        Express a `IS NOT` expression.
+        Create IS NOT comparison with this column.
         """
         ...
+
     def is_null(self) -> Expr:
         """
-        Express a `IS NULL` expression.
+        Create IS NULL check for this column.
         """
         ...
+
     def is_not_null(self) -> Expr:
         """
-        Express a `IS NOT NULL` expression.
+        Create IS NOT NULL check for this column.
         """
         ...
-    def __lshift__(self, other: Expr) -> Expr: ...
-    def __rshift__(self, other: Expr) -> Expr: ...
-    def __mod__(self, other: Expr) -> Expr: ...
-    def __mul__(self, other: Expr) -> Expr: ...
+
+    def __lshift__(self, other: Expr) -> Expr:
+        """
+        Create bitwise left shift with this column.
+        """
+        ...
+
+    def __rshift__(self, other: Expr) -> Expr:
+        """
+        Create bitwise right shift with this column.
+        """
+        ...
+
+    def __mod__(self, other: Expr) -> Expr:
+        """
+        Create modulo operation with this column.
+        """
+        ...
+
+    def __mul__(self, other: Expr) -> Expr:
+        """
+        Create multiplication with this column.
+        """
+        ...
+
     def between(self, a: Expr, b: Expr) -> Expr:
         """
-        Express a `BETWEEN` expression.
+        Create BETWEEN expression with this column.
         """
         ...
 
     def not_between(self, a: Expr, b: Expr) -> Expr:
         """
-        Express a `NOT BETWEEN` expression.
+        Create NOT BETWEEN expression with this column.
         """
         ...
 
     def in_(self, other: typing.Sequence[Expr]) -> Expr:
         """
-        Express a `IN` expression.
+        Create IN expression with this column.
         """
         ...
 
     def not_in(self, other: typing.Sequence[Expr]) -> Expr:
         """
-        Express a `NOT IN` expression.
+        Create NOT IN expression with this column.
         """
         ...
 
-    def __repr__(self) -> str: ...
+    def __repr__(self) -> str:
+        """
+        Return a developer-friendly string representation.
+
+        Returns:
+            A string showing the column definition
+        """
+        ...
 
 class TableName:
     """
@@ -1198,13 +1998,14 @@ class TableName:
     - The base table name
     - Optional schema/namespace qualification
     - Optional database qualification (for systems that support it)
-    - Optional alias for use in queries
+
+    The class provides parsing capabilities for string representations
+    and supports comparison operations.
 
     Examples:
-
-        TableName("users")                           # Simple table name
-        TableName("users", schema="public")          # Schema-qualified table
-        TableName("users", schema="hr", database="company")  # Fully qualified
+        >>> TableName("users")                           # Simple table name
+        >>> TableName("users", schema="public")          # Schema-qualified table
+        >>> TableName("users", schema="hr", database="company")  # Fully qualified
     """
 
     name: str
@@ -1221,15 +2022,73 @@ class TableName:
         name: str,
         schema: typing.Optional[str] = ...,
         database: typing.Optional[str] = ...,
-    ) -> Self: ...
-    @classmethod
-    def parse(cls, string: str) -> Self: ...
-    def __eq__(self, other: Self) -> bool: ...
-    def __ne__(self, other: Self) -> bool: ...
-    def __copy__(self) -> Self: ...
-    def copy(self) -> Self: ...
-    def __repr__(self) -> str: ...
+    ) -> Self:
+        """
+        Create a new TableName instance.
 
+        Args:
+            name: The table name
+            schema: The schema containing the table
+            database: The database containing the table
+
+        Returns:
+            A new TableName instance
+        """
+        ...
+
+    @classmethod
+    def parse(cls, string: str) -> Self:
+        """
+        Parse a string representation of a table name.
+
+        Supports formats like:
+        - "table_name"
+        - "schema.table_name"
+        - "database.schema.table_name"
+
+        Args:
+            string: The string to parse
+
+        Returns:
+            A TableName instance representing the parsed name
+
+        Raises:
+            ValueError: If the string format is invalid
+        """
+        ...
+
+    def __eq__(self, other: Self) -> bool:
+        """
+        Check equality with another TableName.
+        """
+        ...
+
+    def __ne__(self, other: Self) -> bool:
+        """
+        Check inequality with another TableName.
+        """
+        ...
+
+    def __copy__(self) -> Self:
+        """
+        Create a shallow copy of this TableName.
+        """
+        ...
+
+    def copy(self) -> Self:
+        """
+        Create a copy of this TableName.
+
+        Returns:
+            A new TableName instance with the same values
+        """
+        ...
+
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the TableName.
+        """
+        ...
 
 _ForeignKeyActions = typing.Literal["CASCADE", "NO ACTION", "RESTRICT", "SET DEFAULT", "SET NULL"]
 
@@ -1245,28 +2104,35 @@ class ForeignKeySpec:
 
     Foreign keys ensure data consistency by requiring that values in the
     child table's columns match existing values in the parent table's columns.
+
+    Example:
+        >>> ForeignKeySpec(
+        ...     from_columns=["user_id"],
+        ...     to_columns=["id"],
+        ...     to_table="users",
+        ...     on_delete="CASCADE",
+        ...     on_update="RESTRICT"
+        ... )
     """
 
     from_columns: typing.List[str]
     """
     The column names in the child table that reference the parent.
     
-    This attribute is immutable, so if you wanna update it, you should
-    set it again:
-
-        fk.from_columns.append("file_id") # Wrong ❌
-        fk.from_columns = ["id", "name"] # Correct ✅
+    Note: This attribute is immutable. To modify it, create a new list:
+    
+        fk.from_columns.append("file_id")  # Wrong ❌
+        fk.from_columns = ["id", "name"]   # Correct ✅
     """
 
     to_columns: typing.List[str]
     """
     The column names in the parent table being referenced.
     
-    This attribute is immutable, so if you wanna update it, you should
-    set it again:
-
-        fk.to_columns.append("file_id") # Wrong ❌
-        fk.to_columns = ["id", "name"] # Correct ✅
+    Note: This attribute is immutable. To modify it, create a new list:
+    
+        fk.to_columns.append("file_id")  # Wrong ❌  
+        fk.to_columns = ["id", "name"]   # Correct ✅
     """
 
     to_table: TableName
@@ -1293,14 +2159,49 @@ class ForeignKeySpec:
         name: typing.Optional[str] = ...,
         on_delete: typing.Optional[_ForeignKeyActions] = ...,
         on_update: typing.Optional[_ForeignKeyActions] = ...,
-    ) -> None: ...
-    def __copy__(self) -> Self: ...
-    def copy(self) -> Self: ...
-    def __repr__(self) -> str: ...
+    ) -> None:
+        """
+        Create a new ForeignKeySpec.
 
+        Args:
+            from_columns: Columns in the child/referencing table
+            to_columns: Columns in the parent/referenced table
+            to_table: The parent table being referenced
+            from_table: The child table (optional, often inferred from context)
+            name: Constraint name (optional)
+            on_delete: Action on parent row deletion
+            on_update: Action on parent row update
+
+        Returns:
+            A new ForeignKeySpec instance
+        """
+        ...
+
+    def __copy__(self) -> Self:
+        """
+        Create a shallow copy of this ForeignKeySpec.
+        """
+        ...
+
+    def copy(self) -> Self:
+        """
+        Create a copy of this ForeignKeySpec.
+
+        Returns:
+            A new ForeignKeySpec instance with the same values
+        """
+        ...
+
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the ForeignKeySpec.
+        """
+        ...
 
 INDEX_ORDER_ASC: typing.Final[int]
+"""Constant representing ascending index order."""
 INDEX_ORDER_DESC: typing.Final[int]
+"""Constant representing descending index order."""
 
 class IndexColumn:
     """
@@ -1311,8 +2212,14 @@ class IndexColumn:
     - Optional prefix length (for partial indexing)
     - Sort order (ascending or descending)
 
-    Used within IndexCreateStatement to specify which columns are indexed
+    Used within Index to specify which columns are indexed
     and how they should be ordered.
+
+    Example:
+
+        >>> IndexColumn("name")  # Simple column
+        >>> IndexColumn("email", order=INDEX_ORDER_DESC)  # Descending order
+        >>> IndexColumn("content", prefix=100)  # Prefix indexing for long text
     """
 
     name: str
@@ -1326,19 +2233,61 @@ class IndexColumn:
 
     def __new__(
         cls, name: str, prefix: typing.Optional[int] = ..., order: typing.Optional[int] = ...
-    ) -> Self: ...
-    def __copy__(self) -> Self: ...
-    def copy(self) -> Self: ...
-    def __repr__(self) -> str: ...
+    ) -> Self:
+        """
+        Create a new IndexColumn.
 
+        Args:
+            name: The column name
+            prefix: Prefix length for string columns
+            order: Sort order (INDEX_ORDER_ASC or INDEX_ORDER_DESC)
+
+        Returns:
+            A new IndexColumn instance
+        """
+        ...
+
+    def __copy__(self) -> Self:
+        """
+        Create a shallow copy of this IndexColumn.
+        """
+        ...
+
+    def copy(self) -> Self:
+        """
+        Create a copy of this IndexColumn.
+
+        Returns:
+            A new IndexColumn instance with the same values
+        """
+        ...
+
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the IndexColumn.
+        """
+        ...
 
 _IndexType = typing.Literal["BTREE", "FULL TEXT", "HASH"]
-
-# Index Constants
-INDEX_ORDER_ASC: typing.Final[int]
-INDEX_ORDER_DESC: typing.Final[int]
+"""Supported index types."""
 
 class Index:
+    """
+    Represents a database index specification.
+
+    This class defines the structure and properties of a database index,
+    including column definitions, uniqueness constraints, index type,
+    and partial indexing conditions.
+
+    Example:
+
+        >>> Index(
+        ...     columns=["id", IndexColumn("name", order=INDEX_ORDER_DESC)],
+        ...     name="idx_user_name",
+        ...     unique=True
+        ... )
+    """
+
     name: str
     """The name of the index."""
 
@@ -1367,6 +2316,7 @@ class Index:
     """The type/algorithm for this index."""
 
     where: typing.Optional[Expr]
+    """Condition for partial indexing."""
 
     def __new__(
         cls,
@@ -1380,7 +2330,44 @@ class Index:
         include: typing.Sequence[str] = ...,
         index_type: typing.Union[str, _IndexType] = ...,
         where: typing.Optional[Expr] = ...,
-    ) -> Self: ...
-    def __copy__(self) -> Self: ...
-    def copy(self) -> Self: ...
-    def __repr__(self) -> str: ...
+    ) -> Self:
+        """
+        Create a new Index specification.
+
+        Args:
+            columns: The columns to include in the index
+            name: The index name (optional)
+            table: The table to index (optional)
+            if_not_exists: Whether to use IF NOT EXISTS
+            primary: Whether this is a primary key
+            unique: Whether to enforce uniqueness
+            nulls_not_distinct: Whether NULLs are distinct for uniqueness
+            include: Additional included columns
+            index_type: The index algorithm type
+            where: Condition for partial indexing
+
+        Returns:
+            A new Index instance
+        """
+        ...
+
+    def __copy__(self) -> Self:
+        """
+        Create a shallow copy of this Index.
+        """
+        ...
+
+    def copy(self) -> Self:
+        """
+        Create a copy of this Index.
+
+        Returns:
+            A new Index instance with the same values
+        """
+        ...
+
+    def __repr__(self) -> str:
+        """
+        Return a string representation of the Index.
+        """
+        ...
