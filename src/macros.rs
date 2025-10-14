@@ -58,7 +58,7 @@ macro_rules! typeerror {
 }
 
 #[macro_export]
-macro_rules! build_prepare_sql {
+macro_rules! prepare_sql {
     ($converter:expr => $backend:expr => $method:ident($value:expr, &mut $sql:expr)) => {{
         let builder = match $converter($backend) {
             Some(x) => x,
@@ -72,6 +72,28 @@ macro_rules! build_prepare_sql {
         };
 
         let assert_unwind = std::panic::AssertUnwindSafe(|| builder.$method($value, &mut $sql));
+
+        std::panic::catch_unwind(assert_unwind)
+            .map_err(|_| pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("build failed"))
+    }};
+}
+
+#[macro_export]
+macro_rules! build_schema {
+    // ($build_func:ident($stmt:expr, $backend:expr), $backend:expr, $converter:expr, $build_func:ident) => {{
+    ($converter:expr => $backend:expr => $build_func:ident($stmt:expr)) => {{
+        let builder = match $converter($backend) {
+            Some(x) => x,
+            None => {
+                return Err(typeerror!(
+                    "expected BackendMeta, got {}",
+                    $backend.py(),
+                    $backend.as_ptr()
+                ))
+            }
+        };
+
+        let assert_unwind = std::panic::AssertUnwindSafe(|| $stmt.$build_func(&*builder));
 
         std::panic::catch_unwind(assert_unwind)
             .map_err(|_| pyo3::PyErr::new::<pyo3::exceptions::PyRuntimeError, _>("build failed"))

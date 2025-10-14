@@ -232,10 +232,10 @@ impl PyFunctionCall {
 
         let mut sql = String::new();
 
-        build_prepare_sql!(
+        prepare_sql!(
             crate::backend::into_query_builder => backend => prepare_function_name(&lock.get_func(), &mut sql)
         )?;
-        build_prepare_sql!(
+        prepare_sql!(
             crate::backend::into_query_builder => backend => prepare_function_arguments(&lock, &mut sql)
         )?;
 

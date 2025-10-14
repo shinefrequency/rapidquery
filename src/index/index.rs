@@ -75,6 +75,61 @@ impl IndexInner {
             include: self.include.clone(),
         }
     }
+
+    pub fn as_statement(&self, py: pyo3::Python) -> sea_query::IndexCreateStatement {
+        let mut stmt = sea_query::IndexCreateStatement::new();
+
+        stmt.name(&self.name);
+
+        for col in &self.columns {
+            #[cfg(not(debug_assertions))]
+            let col = unsafe {
+                col.bind(py)
+                    .cast_unchecked::<crate::common::PyIndexColumn>()
+            };
+
+            #[cfg(debug_assertions)]
+            let col = col.bind(py).cast::<crate::common::PyIndexColumn>().unwrap();
+
+            let col = col.get();
+            stmt.col(col.clone());
+        }
+
+        if let Some(x) = &self.table {
+            #[cfg(not(debug_assertions))]
+            let x = unsafe { x.bind(py).cast_unchecked::<crate::common::PyTableName>() };
+
+            #[cfg(debug_assertions)]
+            let x = x.bind(py).cast::<crate::common::PyTableName>().unwrap();
+
+            let x = x.get();
+
+            stmt.table(x.clone());
+        }
+
+        if let Some(x) = &self.index_type {
+            stmt.index_type(x.clone().into());
+        }
+
+        for c in &self.include {
+            stmt.include(sea_query::Alias::new(c.clone()));
+        }
+
+        if self.options & (IndexOptions::Primary as u8) > 0 {
+            stmt.primary();
+        }
+        if self.options & (IndexOptions::Unique as u8) > 0 {
+            stmt.unique();
+        }
+        if self.options & (IndexOptions::IfNotExists as u8) > 0 {
+            stmt.if_not_exists();
+        }
+        if self.options & (IndexOptions::NullsNotDistinct as u8) > 0 {
+            stmt.nulls_not_distinct();
+        }
+
+        stmt
+    }
 }
 
 #[pyo3::pyclass(module = "rapidquery._lib", name = "Index", frozen)]
@@ -338,6 +393,15 @@ impl PyIndex {
         Self {
             inner: parking_lot::Mutex::new(lock.clone_ref(py)),
         }
+    }
+
+    fn build(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {
+        let lock = self.inner.lock();
+        let stmt = lock.as_statement(backend.py());
+
+        build_schema!(
+            crate::backend::into_schema_builder => backend => build_any(stmt)
+        )
     }
 
     fn __repr__(&self) -> String {

@@ -1980,6 +1980,21 @@ class Column:
         Create NOT IN expression with this column.
         """
         ...
+    
+    def __copy__(self) -> Self:
+        """
+        Create a shallow copy of this Column.
+        """
+        ...
+
+    def copy(self) -> Self:
+        """
+        Create a copy of this Column.
+
+        Returns:
+            A new Column instance with the same values
+        """
+        ...
 
     def __repr__(self) -> str:
         """
@@ -2279,6 +2294,8 @@ class Index:
     including column definitions, uniqueness constraints, index type,
     and partial indexing conditions.
 
+    You can use it to generate `CREATE INDEX` SQL expressions.
+
     Example:
 
         >>> Index(
@@ -2363,6 +2380,19 @@ class Index:
 
         Returns:
             A new Index instance with the same values
+        """
+        ...
+
+
+    def build(self, backend: BackendMeta) -> str:
+        """
+        Build a CREATE INDEX SQL string representation.
+
+        Args:
+            backend: The database backend that determines SQL dialect and formatting
+
+        Returns:
+            A SQL string representation of the expression
         """
         ...
 

@@ -636,7 +636,7 @@ impl PyAdaptedValue {
 
         let mut sql = String::new();
 
-        build_prepare_sql!(
+        prepare_sql!(
             crate::backend::into_query_builder => backend => prepare_simple_expr(&expr, &mut sql)
         )?;
 

@@ -61,3 +61,19 @@ pub(crate) fn into_query_builder(
         None
     }
 }
+
+#[inline]
+#[optimize(speed)]
+pub(crate) fn into_schema_builder(
+    object: &pyo3::Bound<'_, pyo3::PyAny>,
+) -> Option<Box<dyn sea_query::SchemaBuilder>> {
+    if object.is_exact_instance_of::<PySQLiteBackend>() {
+        Some(Box::new(sea_query::SqliteQueryBuilder))
+    } else if object.is_exact_instance_of::<PyMySQLBackend>() {
+        Some(Box::new(sea_query::MysqlQueryBuilder))
+    } else if object.is_exact_instance_of::<PyPostgreSQLBackend>() {
+        Some(Box::new(sea_query::PostgresQueryBuilder))
+    } else {
+        None
+    }
+}
