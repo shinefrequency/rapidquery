@@ -78,6 +78,42 @@ impl ForeignKeySpecInner {
             on_update: self.on_update,
         }
     }
+
+    pub fn as_statement(&self, py: pyo3::Python<'_>) -> sea_query::ForeignKeyCreateStatement {
+        let mut stmt = sea_query::ForeignKeyCreateStatement::new();
+
+        stmt.name(&self.name);
+
+        if let Some(from_table) = &self.from_table {
+            let from_table =
+                unsafe { from_table.cast_bound_unchecked::<crate::common::PyTableName>(py) };
+
+            stmt.from_tbl(from_table.get().clone());
+        }
+
+        let to_table = unsafe {
+            self.to_table
+                .cast_bound_unchecked::<crate::common::PyTableName>(py)
+        };
+        stmt.to_tbl(to_table.get().clone());
+
+        for c in &self.from_columns {
+            stmt.from_col(sea_query::Alias::new(c));
+        }
+
+        for c in &self.to_columns {
+            stmt.to_col(sea_query::Alias::new(c));
+        }
+
+        if let Some(x) = self.on_delete {
+            stmt.on_delete(x.into());
+        }
+        if let Some(x) = self.on_update {
+            stmt.on_update(x.into());
+        }
+
+        stmt
+    }
 }
 
 #[pyo3::pyclass(module = "rapidquery._lib", name = "ForeignKeySpec", frozen)]
@@ -108,6 +144,8 @@ impl PyForeignKeySpec {
         on_delete: Option<String>,
         on_update: Option<String>,
     ) -> pyo3::PyResult<Self> {
+        let py = to_table.py();
+
         let on_delete = match on_delete {
             None => None,
             Some(x) => Some(ForeignKeyActionAlias::from_str(&x)?),
@@ -129,7 +167,39 @@ impl PyForeignKeySpec {
 
         let name = match name {
             Some(x) => x,
-            None => String::from("FK_") + &uuid::Uuid::new_v4().as_simple().to_string(),
+            None => {
+                let to_table_name = unsafe {
+                    let bound = to_table.cast_bound_unchecked::<crate::common::PyTableName>(py);
+
+                    bound.get().name.to_string()
+                };
+
+                let from_table_name = match &from_table {
+                    Some(x) => unsafe {
+                        let bound = x.cast_bound_unchecked::<crate::common::PyTableName>(py);
+
+                        bound.get().name.to_string()
+                    },
+                    None => String::new(),
+                };
+
+                let mut s = format!("fk_{from_table_name}");
+
+                for col in from_columns.iter() {
+                    s.push('_');
+                    s += &col;
+                }
+
+                s.push('_');
+                s += &to_table_name;
+
+                for col in to_columns.iter() {
+                    s.push('_');
+                    s += &col;
+                }
+
+                s
+            }
         };
 
         if from_columns.is_empty() {

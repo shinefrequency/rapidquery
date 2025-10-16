@@ -55,7 +55,7 @@ mod _lib {
 
     #[pymodule_export]
     use super::foreign_key::PyForeignKeySpec;
-    
+
     #[pymodule_export]
     use super::backend::{PyBackendMeta, PyMySQLBackend, PyPostgreSQLBackend, PySQLiteBackend};
 
@@ -64,7 +64,6 @@ mod _lib {
 
     #[pymodule_export]
     use super::table::PyTable;
-
 
     #[pymodule_init]
     fn init(m: &pyo3::Bound<'_, pyo3::types::PyModule>) -> pyo3::PyResult<()> {

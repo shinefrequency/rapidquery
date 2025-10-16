@@ -19,6 +19,188 @@ pub struct TableInner {
     pub extra: Option<String>,
 }
 
+impl TableInner {
+    pub fn as_table_create_statement(&self, py: pyo3::Python) -> sea_query::TableCreateStatement {
+        let mut stmt = sea_query::TableCreateStatement::new();
+
+        stmt.table(unsafe {
+            let x = self
+                .name
+                .cast_bound_unchecked::<crate::common::PyTableName>(py);
+            x.get().clone()
+        });
+
+        for col in self.columns.values() {
+            let colbound = unsafe { col.cast_bound_unchecked::<crate::column::PyColumn>(py) };
+            let collock = colbound.get().inner.lock();
+
+            stmt.col(collock.as_column_def(py));
+        }
+
+        for ix in self.indexes.iter() {
+            let ixbound = unsafe { ix.cast_bound_unchecked::<crate::index::PyIndex>(py) };
+            let ixlock = ixbound.get().inner.lock();
+
+            // We only want PRIMARY KEY indexes here.
+            if ixlock.options & (crate::index::IndexOptions::Primary as u8) > 0 {
+                stmt.primary_key(&mut ixlock.as_statement(py));
+            }
+        }
+
+        for fk in self.foreign_keys.iter() {
+            let fkbound =
+                unsafe { fk.cast_bound_unchecked::<crate::foreign_key::PyForeignKeySpec>(py) };
+
+            let fklock = fkbound.get().inner.lock();
+            stmt.foreign_key(&mut fklock.as_statement(py));
+        }
+
+        for check in self.checks.iter() {
+            let check_expr = unsafe { check.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
+
+            let check_expr = check_expr.get();
+            let lock = check_expr.inner.lock();
+
+            stmt.check(lock.clone());
+        }
+
+        if self.if_not_exists {
+            stmt.if_not_exists();
+        }
+        if self.temporary {
+            stmt.temporary();
+        }
+
+        if let Some(x) = &self.comment {
+            stmt.comment(x);
+        }
+        if let Some(x) = &self.engine {
+            stmt.engine(x);
+        }
+        if let Some(x) = &self.collate {
+            stmt.collate(x);
+        }
+        if let Some(x) = &self.character_set {
+            stmt.character_set(x);
+        }
+        if let Some(x) = &self.extra {
+            stmt.extra(x);
+        }
+
+        stmt
+    }
+
+    pub fn as_index_create_statements(
+        &self,
+        py: pyo3::Python,
+    ) -> Vec<sea_query::IndexCreateStatement> {
+        let mut vec = Vec::with_capacity(self.indexes.len());
+
+        for ix in self.indexes.iter() {
+            let ixbound = unsafe { ix.cast_bound_unchecked::<crate::index::PyIndex>(py) };
+            let ixlock = ixbound.get().inner.lock();
+
+            // We only want PRIMARY KEY indexes here.
+            if ixlock.options & (crate::index::IndexOptions::Primary as u8) > 0 {
+                continue;
+            }
+
+            vec.push(ixlock.as_statement(py));
+        }
+
+        vec
+    }
+}
+
+#[pyo3::pyclass(module = "rapidquery._lib", name = "TableColumnsVector", frozen)]
+pub struct PyTableColumnsVector {
+    pub inner: Arc<parking_lot::Mutex<TableInner>>,
+}
+
+#[pyo3::pymethods]
+impl PyTableColumnsVector {
+    fn append(&self, value: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<()> {
+        let mut lock = self.inner.lock();
+
+        let name_as_str = unsafe {
+            let bound = lock
+                .name
+                .cast_bound_unchecked::<crate::common::PyTableName>(value.py());
+
+            bound.get().name.clone()
+        };
+
+        unsafe {
+            if std::hint::unlikely(
+                pyo3::ffi::Py_TYPE(value.as_ptr()) != crate::typeref::COLUMN_TYPE,
+            ) {
+                return Err(typeerror!(
+                    "expected Column, got {:?}",
+                    value.py(),
+                    value.as_ptr()
+                ));
+            }
+        }
+
+        let colbound = unsafe { value.cast_unchecked::<crate::column::PyColumn>() };
+        let mut collock = colbound.get().inner.lock();
+
+        collock.table = Some(name_as_str.clone());
+
+        let colname = collock.name.clone();
+        drop(collock);
+
+        lock.columns.insert(colname, value.clone().unbind());
+        Ok(())
+    }
+
+    fn to_list(&self, py: pyo3::Python) -> Vec<pyo3::Py<pyo3::PyAny>> {
+        let lock = self.inner.lock();
+
+        lock.columns.values().map(|x| x.clone_ref(py)).collect()
+    }
+
+    fn __getattr__(&self, py: pyo3::Python, key: String) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
+        let lock = self.inner.lock();
+
+        lock.columns
+            .get(&key)
+            .ok_or_else(|| pyo3::PyErr::new::<pyo3::exceptions::PyAttributeError, _>(key))
+            .map(|x| x.clone_ref(py))
+    }
+
+    fn __delattr__(&self, key: String) -> pyo3::PyResult<()> {
+        let mut lock = self.inner.lock();
+
+        lock.columns
+            .remove(&key)
+            .ok_or_else(|| pyo3::PyErr::new::<pyo3::exceptions::PyAttributeError, _>(key))?;
+
+        Ok(())
+    }
+
+    fn __repr__(&self) -> String {
+        use std::io::Write;
+
+        let lock = self.inner.lock();
+        let mut s = Vec::with_capacity(20);
+
+        write!(s, "<TableColumnsVector name={} columns=[", lock.name).unwrap();
+
+        let n = lock.columns.len() - 1;
+        for (index, col) in lock.columns.values().enumerate() {
+            if index == n {
+                write!(s, "{col}").unwrap();
+            } else {
+                write!(s, "{col}, ").unwrap();
+            }
+        }
+        write!(s, "]>").unwrap();
+
+        unsafe { String::from_utf8_unchecked(s) }
+    }
+}
+
 #[pyo3::pyclass(module = "rapidquery._lib", name = "Table", frozen)]
 pub struct PyTable {
     pub inner: Arc<parking_lot::Mutex<TableInner>>,
@@ -145,7 +327,235 @@ impl PyTable {
         })
     }
 
-    
+    #[getter]
+    fn columns(&self, py: pyo3::Python) -> pyo3::Py<pyo3::PyAny> {
+        pyo3::Py::new(
+            py,
+            PyTableColumnsVector {
+                inner: Arc::clone(&self.inner),
+            },
+        )
+        .unwrap()
+        .into_any()
+    }
+
+    #[getter]
+    fn c(&self, py: pyo3::Python) -> pyo3::Py<pyo3::PyAny> {
+        pyo3::Py::new(
+            py,
+            PyTableColumnsVector {
+                inner: Arc::clone(&self.inner),
+            },
+        )
+        .unwrap()
+        .into_any()
+    }
+
+    #[getter]
+    fn indexes(&self, py: pyo3::Python) -> Vec<pyo3::Py<pyo3::PyAny>> {
+        let lock = self.inner.lock();
+
+        lock.indexes.iter().map(|x| x.clone_ref(py)).collect()
+    }
+
+    #[setter]
+    fn set_indexes(&self, py: pyo3::Python, val: Vec<pyo3::Py<pyo3::PyAny>>) -> pyo3::PyResult<()> {
+        let lock = self.inner.lock();
+        let name = lock.name.clone_ref(py);
+        drop(lock);
+
+        let mut indexes_vec = Vec::with_capacity(val.capacity());
+        for ix in val {
+            if std::hint::unlikely(!ix.bind(py).is_instance_of::<crate::index::PyIndex>()) {
+                return Err(typeerror!("expected Index, got {:?}", py, ix.as_ptr()));
+            }
+
+            let ixbound = unsafe { ix.bind(py).cast_unchecked::<crate::index::PyIndex>() };
+            let mut ixlock = ixbound.get().inner.lock();
+
+            ixlock.table = Some(name.clone_ref(py));
+            drop(ixlock);
+
+            indexes_vec.push(ix);
+        }
+
+        let mut lock = self.inner.lock();
+        lock.indexes = indexes_vec;
+
+        Ok(())
+    }
+
+    #[getter]
+    fn foreign_keys(&self, py: pyo3::Python) -> Vec<pyo3::Py<pyo3::PyAny>> {
+        let lock = self.inner.lock();
+
+        lock.foreign_keys.iter().map(|x| x.clone_ref(py)).collect()
+    }
+
+    #[setter]
+    fn set_foreign_keys(
+        &self,
+        py: pyo3::Python,
+        val: Vec<pyo3::Py<pyo3::PyAny>>,
+    ) -> pyo3::PyResult<()> {
+        let mut foreign_keys_vec = Vec::with_capacity(val.capacity());
+        for fk in val {
+            if std::hint::unlikely(
+                !fk.bind(py)
+                    .is_instance_of::<crate::foreign_key::PyForeignKeySpec>(),
+            ) {
+                return Err(typeerror!(
+                    "expected ForeignKeySpec, got {:?}",
+                    py,
+                    fk.as_ptr()
+                ));
+            }
+
+            foreign_keys_vec.push(fk);
+        }
+
+        let mut lock = self.inner.lock();
+        lock.foreign_keys = foreign_keys_vec;
+
+        Ok(())
+    }
+
+    #[getter]
+    fn checks(&self, py: pyo3::Python) -> Vec<pyo3::Py<pyo3::PyAny>> {
+        let lock = self.inner.lock();
+
+        lock.checks.iter().map(|x| x.clone_ref(py)).collect()
+    }
+
+    #[setter]
+    fn set_checks(&self, py: pyo3::Python, val: Vec<pyo3::Py<pyo3::PyAny>>) -> pyo3::PyResult<()> {
+        let mut checks_vec = Vec::with_capacity(val.capacity());
+        for expr in val {
+            if unsafe { pyo3::ffi::Py_TYPE(expr.as_ptr()) != crate::typeref::EXPR_TYPE } {
+                return Err(typeerror!("expected Expr, got {:?}", py, expr.as_ptr()));
+            }
+
+            checks_vec.push(expr);
+        }
+
+        let mut lock = self.inner.lock();
+        lock.checks = checks_vec;
+
+        Ok(())
+    }
+
+    #[getter]
+    fn if_not_exists(slf: pyo3::PyRef<'_, Self>) -> bool {
+        slf.inner.lock().if_not_exists
+    }
+
+    #[setter]
+    fn set_if_not_exists(slf: pyo3::PyRef<'_, Self>, val: bool) {
+        let mut lock = slf.inner.lock();
+        lock.if_not_exists = val;
+    }
+
+    #[getter]
+    fn temporary(slf: pyo3::PyRef<'_, Self>) -> bool {
+        slf.inner.lock().temporary
+    }
+
+    #[setter]
+    fn set_temporary(slf: pyo3::PyRef<'_, Self>, val: bool) {
+        let mut lock = slf.inner.lock();
+        lock.temporary = val;
+    }
+
+    #[getter]
+    fn comment(&self) -> Option<String> {
+        let lock = self.inner.lock();
+        lock.comment.as_ref().map(|x| x.to_string())
+    }
+
+    #[setter]
+    fn set_comment(&self, val: Option<String>) -> pyo3::PyResult<()> {
+        let mut lock = self.inner.lock();
+        lock.comment = val.map(|x| x.into());
+
+        Ok(())
+    }
+
+    #[getter]
+    fn engine(&self) -> Option<String> {
+        let lock = self.inner.lock();
+        lock.engine.as_ref().map(|x| x.to_string())
+    }
+
+    #[setter]
+    fn set_engine(&self, val: Option<String>) -> pyo3::PyResult<()> {
+        let mut lock = self.inner.lock();
+        lock.engine = val.map(|x| x.into());
+
+        Ok(())
+    }
+
+    #[getter]
+    fn collate(&self) -> Option<String> {
+        let lock = self.inner.lock();
+        lock.collate.as_ref().map(|x| x.to_string())
+    }
+
+    #[setter]
+    fn set_collate(&self, val: Option<String>) -> pyo3::PyResult<()> {
+        let mut lock = self.inner.lock();
+        lock.collate = val.map(|x| x.into());
+
+        Ok(())
+    }
+
+    #[getter]
+    fn character_set(&self) -> Option<String> {
+        let lock = self.inner.lock();
+        lock.character_set.as_ref().map(|x| x.to_string())
+    }
+
+    #[setter]
+    fn set_character_set(&self, val: Option<String>) -> pyo3::PyResult<()> {
+        let mut lock = self.inner.lock();
+        lock.character_set = val.map(|x| x.into());
+
+        Ok(())
+    }
+
+    #[getter]
+    fn extra(&self) -> Option<String> {
+        let lock = self.inner.lock();
+        lock.extra.as_ref().map(|x| x.to_string())
+    }
+
+    #[setter]
+    fn set_extra(&self, val: Option<String>) -> pyo3::PyResult<()> {
+        let mut lock = self.inner.lock();
+        lock.extra = val.map(|x| x.into());
+
+        Ok(())
+    }
+
+    fn build(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {
+        let lock = self.inner.lock();
+        let stmt = lock.as_table_create_statement(backend.py());
+        let ix = lock.as_index_create_statements(backend.py());
+        drop(lock);
+
+        let mut sql = build_schema!(
+            crate::backend::into_schema_builder => backend => build_any(stmt)
+        )? + ";\n";
+
+        for ix in ix.into_iter() {
+            sql += &build_schema!(
+                crate::backend::into_schema_builder => backend => build_any(ix)
+            )?;
+            sql.push(';');
+            sql.push('\n');
+        }
+
+        Ok(sql)
+    }
 
     fn __repr__(&self) -> String {
         use std::io::Write;

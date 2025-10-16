@@ -50,6 +50,68 @@ impl ColumnFields {
         sea_query::SimpleExpr::Column(self.as_column_ref())
     }
 
+    #[inline]
+    #[optimize(speed)]
+    pub fn as_column_def(&self, py: pyo3::Python<'_>) -> sea_query::ColumnDef {
+        let mut column_def = sea_query::ColumnDef::new_with_type(
+            sea_query::Alias::new(self.name.clone()),
+            #[cfg(debug_assertions)]
+            convert::convert_to_column_type(self.r#type.bind(py)).unwrap(),
+            #[cfg(not(debug_assertions))]
+            unsafe {
+                convert::convert_to_column_type(self.r#type.bind(py)).unwrap()
+            },
+        );
+
+        if self.options & (ColumnOptions::PrimaryKey as u8) > 0 {
+            column_def.primary_key();
+        }
+        if self.options & (ColumnOptions::UniqueKey as u8) > 0 {
+            column_def.unique_key();
+        }
+        if self.options & (ColumnOptions::Null as u8) > 0 {
+            column_def.null();
+        }
+        if self.options & (ColumnOptions::NotNull as u8) > 0 {
+            column_def.not_null();
+        }
+        if self.options & (ColumnOptions::AutoIncrement as u8) > 0 {
+            column_def.auto_increment();
+        }
+
+        if let Some(default) = &self.default {
+            let default_expr =
+                unsafe { default.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
+
+            let default_expr = default_expr.get();
+            let lock = default_expr.inner.lock();
+
+            column_def.default(lock.clone());
+        }
+
+        if let Some(generated) = &self.generated {
+            let generated_expr =
+                unsafe { generated.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
+
+            let generated_expr = generated_expr.get();
+            let lock = generated_expr.inner.lock();
+
+            column_def.generated(
+                lock.clone(),
+                self.options & (ColumnOptions::StoredGenerated as u8) > 0,
+            );
+        }
+
+        if let Some(x) = &self.extra {
+            column_def.extra(x);
+        }
+        if let Some(x) = &self.comment {
+            column_def.comment(x);
+        }
+
+        column_def
+    }
+
     pub fn clone_ref(&self, py: pyo3::Python) -> Self {
         Self {
             name: self.name.clone(),
@@ -693,7 +755,14 @@ impl PyColumn {
         let mut s: Vec<u8> = Vec::with_capacity(20);
 
         if let Some(x) = &lock.table {
-            write!(s, "<Column {:?}.{:?} type={}", x.to_string(), lock.name, lock.r#type).unwrap();
+            write!(
+                s,
+                "<Column {:?}.{:?} type={}",
+                x.to_string(),
+                lock.name,
+                lock.r#type
+            )
+            .unwrap();
         } else {
             write!(s, "<Column {:?} type={}", lock.name, lock.r#type).unwrap();
         }

@@ -46,7 +46,7 @@ impl std::fmt::Display for IndexTypeAlias {
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-enum IndexOptions {
+pub enum IndexOptions {
     Primary = 1 << 0,
     Unique = 1 << 1,
     IfNotExists = 1 << 2,
@@ -137,7 +137,7 @@ pub struct PyIndex {
     pub inner: parking_lot::Mutex<IndexInner>,
 }
 
-fn _convert_pyobject_into_index_column(
+fn convert_pyobject_into_index_column(
     py: pyo3::Python,
     obj: pyo3::Py<pyo3::PyAny>,
 ) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
@@ -189,13 +189,9 @@ impl PyIndex {
         r#where: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
     ) -> pyo3::PyResult<Self> {
         let mut cols = Vec::with_capacity(columns.capacity());
-
         for col in columns {
-            cols.push(_convert_pyobject_into_index_column(py, col)?);
+            cols.push(convert_pyobject_into_index_column(py, col)?);
         }
-
-        let name = name
-            .unwrap_or_else(|| String::from("ix_") + &uuid::Uuid::new_v4().as_simple().to_string());
 
         let table: Option<pyo3::Py<pyo3::PyAny>> = {
             match table {
@@ -203,6 +199,30 @@ impl PyIndex {
                 None => None,
             }
         };
+
+        let name = name.unwrap_or_else(|| {
+            // get table name
+            let table_name = match &table {
+                Some(x) => unsafe {
+                    let bound = x.cast_bound_unchecked::<crate::common::PyTableName>(py);
+
+                    bound.get().name.to_string()
+                },
+                None => String::new()
+            };
+
+            // ix_<table>_<column_names...>
+            let mut s = format!("ix_{table_name}");
+
+            for col in cols.iter() {
+                let bound = unsafe {col.cast_bound_unchecked::<crate::common::PyIndexColumn>(py)};
+
+                s.push('_');
+                s += &bound.get().name;
+            }
+
+            s
+        });
 
         let r#where: Option<pyo3::Py<pyo3::PyAny>> = {
             match r#where {
@@ -344,7 +364,7 @@ impl PyIndex {
         let mut cols = Vec::with_capacity(val.capacity());
 
         for col in val {
-            cols.push(_convert_pyobject_into_index_column(py, col)?);
+            cols.push(convert_pyobject_into_index_column(py, col)?);
         }
 
         let mut lock = self.inner.lock();

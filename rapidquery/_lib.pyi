@@ -117,9 +117,7 @@ class _PrecisionScaleColumnType(ColumnTypeMeta[T]):
     This is an internal base class for numeric types like DECIMAL and NUMERIC
     that require both precision (total digits) and scale (decimal places) specification.
     """
-    def __new__(
-        cls, precision_scale: typing.Optional[typing.Tuple[int, int]] = ...
-    ) -> Self: ...
+    def __new__(cls, precision_scale: typing.Optional[typing.Tuple[int, int]] = ...) -> Self: ...
     @property
     def precision_scale(self) -> typing.Optional[typing.Tuple[int, int]]:
         """The total number of significant digits."""
@@ -580,9 +578,7 @@ class AdaptedValue:
     """
 
     @typing.overload
-    def __new__(
-        cls, val: typing.Any, type: typing.Optional[ColumnTypeMeta] = None
-    ) -> Self:
+    def __new__(cls, val: typing.Any, type: typing.Optional[ColumnTypeMeta] = None) -> Self:
         """
         Validates and adapts your value for Rust and SQL, then creates a new `AdaptedValue` instance.
 
@@ -2107,9 +2103,7 @@ class TableName:
         """
         ...
 
-_ForeignKeyActions = typing.Literal[
-    "CASCADE", "NO ACTION", "RESTRICT", "SET DEFAULT", "SET NULL"
-]
+_ForeignKeyActions = typing.Literal["CASCADE", "NO ACTION", "RESTRICT", "SET DEFAULT", "SET NULL"]
 
 class ForeignKeySpec:
     """
@@ -2474,8 +2468,25 @@ class DropIndex:
         """
         ...
 
+class TableColumnsVector:
+    def append(self, value: Column) -> None: ...
+    def to_list(self) -> typing.Sequence[Column]: ...
+    def __getattr__(self, key: str) -> Column: ...
+    def __delattr__(self, key: str) -> None: ...
+    def __repr__(self) -> str: ...
 
 class Table:
+    indexes: typing.Sequence[Index]
+    foreign_keys: typing.Sequence[ForeignKeySpec]
+    checks: typing.Sequence[Expr]
+    if_not_exists: bool
+    temporary: bool
+    comment: typing.Optional[str]
+    engine: typing.Optional[str]
+    collate: typing.Optional[str]
+    character_set: typing.Optional[str]
+    extra: typing.Optional[str]
+
     def __new__(
         cls,
         name: typing.Union[str, TableName],
@@ -2491,6 +2502,9 @@ class Table:
         character_set: typing.Optional[str] = ...,
         extra: typing.Optional[str] = ...,
     ) -> Self: ...
-
-    def __repr__(self) -> str:
-        ...
+    @property
+    def columns(self) -> TableColumnsVector: ...
+    @property
+    def c(self) -> TableColumnsVector: ...
+    def build(self, backend: BackendMeta) -> str: ...
+    def __repr__(self) -> str: ...

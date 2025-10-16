@@ -80,7 +80,8 @@ macro_rules! prepare_sql {
 
 #[macro_export]
 macro_rules! build_schema {
-    // ($build_func:ident($stmt:expr, $backend:expr), $backend:expr, $converter:expr, $build_func:ident) => {{
+    // ($build_func:ident($stmt:expr, $backend:expr), $backend:expr, $converter:expr,
+    // $build_func:ident) => {{
     ($converter:expr => $backend:expr => $build_func:ident($stmt:expr)) => {{
         let builder = match $converter($backend) {
             Some(x) => x,
