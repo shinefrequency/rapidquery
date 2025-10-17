@@ -981,67 +981,67 @@ class Expr:
         """
         ...
 
-    def __eq__(self, other: Self) -> Self:
+    def __eq__(self, other: typing.Any) -> Self:
         """
         Create an equality comparison expression.
         """
         ...
 
-    def __ne__(self, other: Self) -> Self:
+    def __ne__(self, other: typing.Any) -> Self:
         """
         Create an inequality comparison expression.
         """
         ...
 
-    def __gt__(self, other: Self) -> Self:
+    def __gt__(self, other: typing.Any) -> Self:
         """
         Create a greater-than comparison expression.
         """
         ...
 
-    def __ge__(self, other: Self) -> Self:
+    def __ge__(self, other: typing.Any) -> Self:
         """
         Create a greater-than-or-equal comparison expression.
         """
         ...
 
-    def __lt__(self, other: Self) -> Self:
+    def __lt__(self, other: typing.Any) -> Self:
         """
         Create a less-than comparison expression.
         """
         ...
 
-    def __le__(self, other: Self) -> Self:
+    def __le__(self, other: typing.Any) -> Self:
         """
         Create a less-than-or-equal comparison expression.
         """
         ...
 
-    def __add__(self, other: Self) -> Self:
+    def __add__(self, other: typing.Any) -> Self:
         """
         Create an addition expression.
         """
         ...
 
-    def __sub__(self, other: Self) -> Self:
+    def __sub__(self, other: typing.Any) -> Self:
         """
         Create a subtraction expression.
         """
         ...
 
-    def __and__(self, other: Self) -> Self:
+    def __and__(self, other: typing.Any) -> Self:
         """
         Create a logical AND expression.
         """
         ...
 
-    def __or__(self, other: Self) -> Self:
+    def __or__(self, other: typing.Any) -> Self:
         """
         Create a logical OR expression.
         """
         ...
 
-    def __truediv__(self, other: Self) -> Self:
+    def __truediv__(self, other: typing.Any) -> Self:
         """
         Create a division expression.
         """
@@ -1049,7 +1049,7 @@ class Expr:
 
     def not_(self) -> Self: ...
 
-    def is_(self, other: Self) -> Self:
+    def is_(self, other: typing.Any) -> Self:
         """
         Create an IS comparison expression (for NULL comparisons).
 
@@ -1063,7 +1063,7 @@ class Expr:
         """
         ...
 
-    def sqlite_matches(self, other: Self) -> Self:
+    def sqlite_matches(self, other: typing.Any) -> Self:
         """
         Create a SQLite MATCH expression for full-text search.
 
@@ -1075,7 +1075,7 @@ class Expr:
         """
         ...
 
-    def sqlite_glob(self, other: Self) -> Self:
+    def sqlite_glob(self, other: typing.Any) -> Self:
         """
         Create a SQLite GLOB expression for pattern matching.
 
@@ -1087,7 +1087,7 @@ class Expr:
         """
         ...
 
-    def pg_concat(self, other: Self) -> Self:
+    def pg_concat(self, other: typing.Any) -> Self:
         """
         Create a PostgreSQL concatenation expression using || operator.
 
@@ -1099,7 +1099,7 @@ class Expr:
         """
         ...
 
-    def pg_contained(self, other: Self) -> Self:
+    def pg_contained(self, other: typing.Any) -> Self:
         """
         Create a PostgreSQL contained expression using <@ operator.
 
@@ -1113,7 +1113,7 @@ class Expr:
         """
         ...
 
-    def sqlite_cast_json_field(self, other: Self) -> Self:
+    def sqlite_cast_json_field(self, other: typing.Any) -> Self:
         """
         Extract and cast a JSON field to appropriate SQL type using ->> operator.
 
@@ -1127,7 +1127,7 @@ class Expr:
         """
         ...
 
-    def sqlite_get_json_field(self, other: Self) -> Self:
+    def sqlite_get_json_field(self, other: typing.Any) -> Self:
         """
         Extract a JSON field using -> operator (returns JSON type).
 
@@ -1139,7 +1139,7 @@ class Expr:
         """
         ...
 
-    def pg_cast_json_field(self, other: Self) -> Self:
+    def pg_cast_json_field(self, other: typing.Any) -> Self:
         """
         Extract and cast a JSON field to appropriate SQL type using ->> operator.
 
@@ -1153,7 +1153,7 @@ class Expr:
         """
         ...
 
-    def pg_get_json_field(self, other: Self) -> Self:
+    def pg_get_json_field(self, other: typing.Any) -> Self:
         """
         Extract a JSON field using -> operator (returns JSON type).
 
@@ -1165,7 +1165,7 @@ class Expr:
         """
         ...
 
-    def pg_contains(self, other: Self) -> Self:
+    def pg_contains(self, other: typing.Any) -> Self:
         """
         Create a PostgreSQL contains expression using @> operator.
 
@@ -1179,7 +1179,7 @@ class Expr:
         """
         ...
 
-    def pg_matches(self, other: Self) -> Self:
+    def pg_matches(self, other: typing.Any) -> Self:
         """
         Create a PostgreSQL full-text search matches expression using @@ operator.
 
@@ -1191,7 +1191,7 @@ class Expr:
         """
         ...
 
-    def pg_ilike(self, other: Self) -> Self:
+    def pg_ilike(self, other: typing.Any) -> Self:
         """
         Create a PostgreSQL case-insensitive LIKE expression.
 
@@ -1203,7 +1203,7 @@ class Expr:
         """
         ...
 
-    def pg_not_ilike(self, other: Self) -> Self:
+    def pg_not_ilike(self, other: typing.Any) -> Self:
         """
         Create a PostgreSQL case-insensitive NOT LIKE expression.
 
@@ -1215,7 +1215,7 @@ class Expr:
         """
         ...
 
-    def is_not(self, other: Self) -> Self:
+    def is_not(self, other: typing.Any) -> Self:
         """
         Create an IS NOT comparison expression.
 
@@ -1245,31 +1245,31 @@ class Expr:
         """
         ...
 
-    def __lshift__(self, other: Self) -> Self:
+    def __lshift__(self, other: typing.Any) -> Self:
         """
         Create a bitwise left shift expression.
         """
         ...
 
-    def __rshift__(self, other: Self) -> Self:
+    def __rshift__(self, other: typing.Any) -> Self:
         """
         Create a bitwise right shift expression.
         """
         ...
 
-    def __mod__(self, other: Self) -> Self:
+    def __mod__(self, other: typing.Any) -> Self:
         """
         Create a modulo expression.
         """
         ...
 
-    def __mul__(self, other: Self) -> Self:
+    def __mul__(self, other: typing.Any) -> Self:
         """
         Create a multiplication expression.
         """
         ...
 
-    def between(self, a: Self, b: Self) -> Self:
+    def between(self, a: typing.Any, b: typing.Any) -> Self:
         """
         Create a BETWEEN range comparison expression.
 
@@ -1282,7 +1282,7 @@ class Expr:
         """
         ...
 
-    def not_between(self, a: Self, b: Self) -> Self:
+    def not_between(self, a: typing.Any, b: typing.Any) -> Self:
         """
         Create a NOT BETWEEN range comparison expression.
 
