@@ -64,6 +64,29 @@ pub struct IndexInner {
 }
 
 impl IndexInner {
+    pub fn regenerate_name(&mut self, py: pyo3::Python) {
+        let table_name = match &self.table {
+            Some(x) => unsafe {
+                let bound = x.cast_bound_unchecked::<crate::common::PyTableName>(py);
+
+                bound.get().name.to_string()
+            },
+            None => String::new(),
+        };
+
+        // ix_<table>_<column_names...>
+        let mut s = format!("ix_{table_name}");
+
+        for col in self.columns.iter() {
+            let bound = unsafe { col.cast_bound_unchecked::<crate::common::PyIndexColumn>(py) };
+
+            s.push('_');
+            s += &bound.get().name;
+        }
+
+        self.name = s;
+    }
+
     pub fn clone_ref(&self, py: pyo3::Python) -> Self {
         Self {
             name: self.name.clone(),
@@ -200,29 +223,7 @@ impl PyIndex {
             }
         };
 
-        let name = name.unwrap_or_else(|| {
-            // get table name
-            let table_name = match &table {
-                Some(x) => unsafe {
-                    let bound = x.cast_bound_unchecked::<crate::common::PyTableName>(py);
-
-                    bound.get().name.to_string()
-                },
-                None => String::new(),
-            };
-
-            // ix_<table>_<column_names...>
-            let mut s = format!("ix_{table_name}");
-
-            for col in cols.iter() {
-                let bound = unsafe { col.cast_bound_unchecked::<crate::common::PyIndexColumn>(py) };
-
-                s.push('_');
-                s += &bound.get().name;
-            }
-
-            s
-        });
+        let name = name.unwrap_or_default();
 
         let r#where: Option<pyo3::Py<pyo3::PyAny>> = {
             match r#where {
@@ -246,7 +247,7 @@ impl PyIndex {
             | ((if_not_exists as u8) * (IndexOptions::IfNotExists as u8))
             | ((nulls_not_distinct as u8) * (IndexOptions::NullsNotDistinct as u8));
 
-        let inner = IndexInner {
+        let mut inner = IndexInner {
             name,
             columns: cols,
             table,
@@ -255,6 +256,10 @@ impl PyIndex {
             r#where,
             include,
         };
+
+        if inner.name.is_empty() {
+            inner.regenerate_name(py);
+        }
 
         Ok(Self {
             inner: parking_lot::Mutex::new(inner),

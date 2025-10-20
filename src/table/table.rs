@@ -182,6 +182,7 @@ impl PyTable {
             let mut ixlock = ixbound.get().inner.lock();
 
             ixlock.table = Some(name.clone_ref(py));
+            ixlock.regenerate_name(py);
             drop(ixlock);
 
             indexes_vec.push(ix);
