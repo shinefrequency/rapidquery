@@ -1,15 +1,17 @@
-pub enum OptionalParam<'a> {
+pub enum OptionalParam<'a, 'py> {
     Undefined,
-    Defined(pyo3::Bound<'a, pyo3::PyAny>),
+    Defined(pyo3::Borrowed<'a, 'py, pyo3::PyAny>),
 }
 
-impl<'a> pyo3::FromPyObject<'a> for OptionalParam<'a> {
-    fn extract_bound(ob: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
-        Ok(OptionalParam::Defined(ob.clone()))
+impl<'a, 'py> pyo3::FromPyObject<'a, 'py> for OptionalParam<'a, 'py> {
+    type Error = pyo3::PyErr;
+
+    fn extract(obj: pyo3::Borrowed<'a, 'py, pyo3::PyAny>) -> Result<Self, Self::Error> {
+        Ok(Self::Defined(obj))
     }
 }
 
-impl<'a> OptionalParam<'a> {
+impl<'a, 'py> OptionalParam<'a, 'py> {
     #[inline]
     #[optimize(speed)]
     #[allow(dead_code)]
@@ -19,7 +21,7 @@ impl<'a> OptionalParam<'a> {
 
     #[inline]
     #[allow(dead_code)]
-    pub unsafe fn unwrap_unchecked(self) -> pyo3::Bound<'a, pyo3::PyAny> {
+    pub unsafe fn unwrap_unchecked(self) -> pyo3::Borrowed<'a, 'py, pyo3::PyAny> {
         match self {
             OptionalParam::Defined(x) => x,
 

@@ -63,7 +63,7 @@ features = [
 ]
 
 [dependencies.pyo3]
-version = "0.26"
+version = "0.27"
 default-features = false
 features = ["macros", "extension-module", "chrono", "uuid", "rust_decimal"]
 

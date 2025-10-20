@@ -64,7 +64,7 @@ mod _lib {
     use super::index::{PyDropIndex, PyIndex};
 
     #[pymodule_export]
-    use super::table::PyTable;
+    use super::table::{PyDropTable, PyRenameTable, PyTable};
 
     #[pymodule_init]
     fn init(m: &pyo3::Bound<'_, pyo3::types::PyModule>) -> pyo3::PyResult<()> {

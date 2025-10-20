@@ -4,10 +4,19 @@ use std::collections::HashMap;
 type ColumnsMap = HashMap<String, pyo3::Py<pyo3::PyAny>>;
 
 pub struct TableInner {
+    // Always is `TableName`
     pub name: pyo3::Py<pyo3::PyAny>,
+
+    // Always is `HashMap<String, Column>`
     pub columns: ColumnsMap,
+
+    // Always is `Vec<Index>`
     pub indexes: Vec<pyo3::Py<pyo3::PyAny>>,
+
+    // Always is `Vec<ForeignKeySpec>`
     pub foreign_keys: Vec<pyo3::Py<pyo3::PyAny>>,
+
+    // Always is `Vec<Expr>`
     pub checks: Vec<pyo3::Py<pyo3::PyAny>>,
     pub if_not_exists: bool,
     pub temporary: bool,
@@ -19,6 +28,7 @@ pub struct TableInner {
 }
 
 impl TableInner {
+    #[optimize(speed)]
     pub fn as_table_create_statement(&self, py: pyo3::Python) -> sea_query::TableCreateStatement {
         let mut stmt = sea_query::TableCreateStatement::new();
 
@@ -87,6 +97,7 @@ impl TableInner {
         stmt
     }
 
+    #[optimize(speed)]
     pub fn as_index_create_statements(
         &self,
         py: pyo3::Python,

@@ -9,7 +9,7 @@ where
     T: super::types::AsColumnType,
 {
     let val = pyo3::Bound::from_borrowed_ptr(py, obj_ptr);
-    let val = val.downcast_unchecked::<T>();
+    let val = val.cast_unchecked::<T>();
 
     val.get().as_column_type(py)
 }

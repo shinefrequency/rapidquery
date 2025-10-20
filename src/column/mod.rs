@@ -23,7 +23,10 @@ enum ColumnOptions {
 #[non_exhaustive]
 pub enum LazyColumnRef {
     None,
-    TableName(pyo3::Py<pyo3::PyAny>),
+    TableName(
+        // Always is `TableName`
+        pyo3::Py<pyo3::PyAny>,
+    ),
     ColumnRef(sea_query::ColumnRef),
 }
 
@@ -104,9 +107,15 @@ impl LazyColumnRef {
 
 pub struct ColumnFields {
     pub name: String,
+
+    // Always is `ColumnTypeMeta`
     pub r#type: pyo3::Py<pyo3::PyAny>,
     pub options: u8,
+
+    // Always is `Option<Expr>`
     pub default: Option<pyo3::Py<pyo3::PyAny>>,
+
+    // Always is `Option<Expr>`
     pub generated: Option<pyo3::Py<pyo3::PyAny>>,
     pub extra: Option<String>,
     pub comment: Option<String>,
@@ -269,7 +278,7 @@ impl PyColumn {
             match default {
                 OptionalParam::Undefined => None,
                 OptionalParam::Defined(x) => Some(
-                    crate::expression::PyExpr::try_with_specific_type(x, Some(r#type))?,
+                    crate::expression::PyExpr::try_with_specific_type(x.to_owned(), Some(r#type))?,
                 ),
             }
         };
@@ -277,7 +286,9 @@ impl PyColumn {
         let generated_expr = {
             match generated {
                 OptionalParam::Undefined => None,
-                OptionalParam::Defined(x) => Some(crate::expression::PyExpr::try_from(x)?),
+                OptionalParam::Defined(x) => {
+                    Some(crate::expression::PyExpr::try_from(x.to_owned())?)
+                }
             }
         };
 

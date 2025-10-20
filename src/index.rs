@@ -55,10 +55,17 @@ pub enum IndexOptions {
 
 pub struct IndexInner {
     pub name: String,
+
+    // Always is `Vec<IndexColumn>`
     pub columns: Vec<pyo3::Py<pyo3::PyAny>>,
+
+    // Always is `Option<TableName>`
     pub table: Option<pyo3::Py<pyo3::PyAny>>,
+
     pub options: u8,
     pub index_type: Option<IndexTypeAlias>,
+
+    // Always is `Option<Expr>`
     pub r#where: Option<pyo3::Py<pyo3::PyAny>>,
     pub include: Vec<String>,
 }
@@ -99,6 +106,7 @@ impl IndexInner {
         }
     }
 
+    #[optimize(speed)]
     pub fn as_statement(&self, py: pyo3::Python) -> sea_query::IndexCreateStatement {
         let mut stmt = sea_query::IndexCreateStatement::new();
 

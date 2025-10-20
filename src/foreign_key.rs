@@ -54,11 +54,11 @@ impl std::fmt::Display for ForeignKeyActionAlias {
 pub struct ForeignKeySpecInner {
     pub name: String,
 
-    /// Always is [`crate::common::TableName`]
+    // Always is `TableName`
     pub to_table: pyo3::Py<pyo3::PyAny>,
     pub to_columns: Vec<String>,
 
-    /// Always is [`Option<crate::common::TableName>`]
+    // Always is `Option<TableName>`
     pub from_table: Option<pyo3::Py<pyo3::PyAny>>,
     pub from_columns: Vec<String>,
 
@@ -79,6 +79,7 @@ impl ForeignKeySpecInner {
         }
     }
 
+    #[optimize(speed)]
     pub fn as_statement(&self, py: pyo3::Python<'_>) -> sea_query::ForeignKeyCreateStatement {
         let mut stmt = sea_query::ForeignKeyCreateStatement::new();
 
