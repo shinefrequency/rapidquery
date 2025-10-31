@@ -513,7 +513,16 @@ pub struct PyEnumType {
 #[pyo3::pymethods]
 impl PyEnumType {
     #[new]
-    fn new(name: String, variants: Vec<String>) -> pyo3::PyResult<(Self, PyColumnTypeMeta)> {
+    fn new(name: String, mut variants: Vec<String>) -> pyo3::PyResult<(Self, PyColumnTypeMeta)> {
+        if variants.is_empty() {
+            return Err(
+                pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>("variants cannot be empty")
+            );
+        }
+        
+        variants.sort_unstable();
+        variants.dedup();
+
         let slf = Self {
             inner: parking_lot::Mutex::new(EnumTypeFields { name, variants }),
         };

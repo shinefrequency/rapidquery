@@ -25,7 +25,7 @@ specificdata = [
     (12, "is_integer", _lib.TinyUnsignedType()),
     (12.4, "is_float", _lib.FloatType()),
     ("string", "is_json", _lib.JsonBinaryType()),
-    ("string", "is_string", _lib.EnumType("name", [])),
+    ("string", "is_string", _lib.EnumType("name", ["var1"])),
     (b"bytes", "is_bytes", _lib.BlobType()),
     (True, "is_json", _lib.JsonType()),
     (list(), "is_array", _lib.ArrayType(_lib.IntegerType())),

@@ -154,13 +154,19 @@ impl PyColumnRef {
     }
 
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::PyRef<'_, Self>) -> bool {
-        (slf.as_ptr() == other.as_ptr())
-            || (slf.col == other.col && slf.schema == other.schema && slf.table == other.table)
+        if slf.as_ptr() == other.as_ptr() {
+            return true;
+        }
+
+        slf.col == other.col && slf.schema == other.schema && slf.table == other.table
     }
 
     fn __ne__(slf: pyo3::PyRef<'_, Self>, other: pyo3::PyRef<'_, Self>) -> bool {
-        (slf.as_ptr() != other.as_ptr())
-            && (slf.col == other.col && slf.schema == other.schema && slf.table == other.table)
+        if slf.as_ptr() == other.as_ptr() {
+            return false;
+        }
+
+        slf.col != other.col || slf.schema != other.schema || slf.table != other.table
     }
 
     fn __copy__(&self) -> Self {

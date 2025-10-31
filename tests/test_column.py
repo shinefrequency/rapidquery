@@ -137,7 +137,7 @@ def test_column(val: _lib.Column, case: ColumnTestCase):
     assert val.comment == case.comment
     assert val.stored_generated == case.stored_generated
     assert val.to_column_ref() == case.column_ref
-    assert val.default.build(_lib.PostgreSQLBackend()) == case.default_expr
+    assert val.default.build("postgres") == case.default_expr
 
     val.extra = "HELLO"
     val.comment = "COMMENT"

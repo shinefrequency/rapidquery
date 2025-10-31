@@ -13,11 +13,8 @@ from rapidquery._lib import (
     AlterTableDropForeignKeyOption,
     IntegerType,
     StringType,
-    ForeignKeySpec,
+    ForeignKey,
     Index,
-    SQLiteBackend,
-    PostgreSQLBackend,
-    MySQLBackend,
 )
 
 
@@ -34,8 +31,8 @@ class TestTable:
         assert table.name.schema is None
         assert table.name.database is None
         assert len(table.columns) == 2
-        assert table.columns[0].name == "id"
-        assert table.columns[1].name == "name"
+        assert table.get_column("id").name == "id"
+        assert table.get_column("name").name == "name"
         assert table.if_not_exists is False
         assert table.temporary is False
 
@@ -99,7 +96,7 @@ class TestTable:
         """Test that build method works with backend"""
         columns = [Column("id", IntegerType(), primary_key=True), Column("name", StringType(100))]
         table = Table("test_table", columns)
-        backend = SQLiteBackend()
+        backend = "sqlite"
 
         sql = table.build(backend)
 
@@ -151,7 +148,7 @@ class TestDropTable:
     def test_drop_table_build_method(self):
         """Test that build method works with backend"""
         drop_table = DropTable("users", if_exists=True)
-        backend = PostgreSQLBackend()
+        backend = "postgres"
 
         # Should not raise an exception
         sql = drop_table.build(backend)
@@ -241,7 +238,7 @@ class TestAlterTable:
             AlterTableRenameColumnOption("status", "state"),
         ]
         alter_table = AlterTable("orders", options)
-        backend = MySQLBackend()
+        backend = "mysql"
 
         # Should not raise an exception
         sql = alter_table.build(backend)
@@ -316,7 +313,7 @@ class TestAlterTableOptions:
 
     def test_alter_table_add_foreign_key_option(self):
         """Test AddForeignKey option"""
-        foreign_key = ForeignKeySpec(from_columns=["user_id"], to_columns=["id"], to_table="users")
+        foreign_key = ForeignKey(from_columns=["user_id"], to_columns=["id"], to_table="users")
         option = AlterTableAddForeignKeyOption(foreign_key)
 
         assert option.foreign_key.from_columns == ["user_id"]
@@ -371,7 +368,7 @@ class TestIntegration:
         indexes = [Index(columns=["title"], name="idx_title")]
 
         foreign_keys = [
-            ForeignKeySpec(from_columns=["user_id"], to_columns=["id"], to_table="users")
+            ForeignKey(from_columns=["user_id"], to_columns=["id"], to_table="users")
         ]
 
         table = Table(name="posts", columns=columns, indexes=indexes, foreign_keys=foreign_keys)

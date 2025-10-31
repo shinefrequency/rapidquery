@@ -1256,11 +1256,8 @@ class Expr:
         """
         Convert the expression to its SQL string representation.
 
-        Args:
-            backend: The database backend that determines SQL dialect and formatting
-
-        Returns:
-            A SQL string representation of the expression
+        **do NOT execute the result of this method** because this function does not
+        use parametized SQL, and easy can cause SQL injection. **use `build` method instead**.
         """
         ...
 
@@ -2236,7 +2233,11 @@ class Table:
     """
 
     columns: typing.Sequence[Column]
-    """The columns that make up this table."""
+    """
+    The columns that make up this table.
+    
+    NOTE: The order may not be followed and may be different each time you access this attribute.
+    """
 
     indexes: typing.Sequence[Index]
     """Indexes defined on this table for query optimization."""
@@ -3071,11 +3072,8 @@ class Insert:
         """
         Build the INSERT SQL statement as a plain string with values inlined.
 
-        Args:
-            backend: The database backend that determines SQL dialect
-
-        Returns:
-            A SQL string with values inlined
+        **do NOT execute the result of this method** because this function does not
+        use parametized SQL, and easy can cause SQL injection. **use `build` method instead**.
         """
         ...
 
@@ -3193,11 +3191,8 @@ class Delete:
         """
         Build the DELETE SQL statement as a plain string with values inlined.
 
-        Args:
-            backend: The database backend that determines SQL dialect
-
-        Returns:
-            A SQL string with values inlined
+        **do NOT execute the result of this method** because this function does not
+        use parametized SQL, and easy can cause SQL injection. **use `build` method instead**.
         """
         ...
 
