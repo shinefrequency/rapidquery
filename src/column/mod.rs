@@ -217,7 +217,7 @@ impl ColumnInner {
 /// - Auto-increment behavior
 /// - Default values and generated columns
 /// - Comments and extra specifications
-#[pyo3::pyclass(module = "rapidquery._lib", name = "Column", frozen)]
+#[pyo3::pyclass(module = "rapidquery._lib", name = "Column", frozen, generic)]
 pub struct PyColumn {
     pub(crate) inner: parking_lot::Mutex<ColumnInner>,
 }
@@ -498,6 +498,20 @@ impl PyColumn {
     fn to_expr(&self, py: pyo3::Python) -> crate::expression::PyExpr {
         let mut lock = self.inner.lock();
         lock.as_simple_expr(py).into()
+    }
+
+    fn adapt(
+        &self,
+        value: pyo3::Bound<'_, pyo3::PyAny>,
+    ) -> pyo3::PyResult<crate::adaptation::PyAdaptedValue> {
+        let py = value.py();
+        let lock = self.inner.lock();
+        let value = crate::adaptation::ReturnableValue::from_bound(
+            value,
+            Some(lock.r#type.bind(py)),
+        )?;
+
+        Ok(value.into())
     }
 
     fn __copy__(&self, py: pyo3::Python) -> Self {

@@ -29,7 +29,7 @@ pub struct InsertInner {
     pub on_conflict: Option<pyo3::Py<pyo3::PyAny>>,
     pub returning_clause: super::returning::ReturningClause,
     pub default_values: Option<u32>,
-    // Comming Soon ...
+    // TODO
     // pub with: Option<pyo3::Py<pyo3::PyAny>>,
 }
 
@@ -130,7 +130,7 @@ impl PyInsert {
         unsafe {
             for (key, value) in kwds.iter() {
                 let key = key.extract::<String>().unwrap_unchecked();
-                cols.push(key.clone());
+                cols.push(key);
                 vals.push(crate::expression::PyExpr::from_bound_into_any(value)?);
             }
         }

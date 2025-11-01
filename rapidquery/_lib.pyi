@@ -501,7 +501,7 @@ class ArrayType(ColumnTypeMeta[list]):
 
     def __new__(cls, element: ColumnTypeMeta) -> Self: ...
 
-class AdaptedValue:
+class AdaptedValue(typing.Generic[T]):
     """
     Bridges Python types, Rust types, and SQL types for seamless data conversion.
 
@@ -599,7 +599,7 @@ class AdaptedValue:
         ...
 
     @property
-    def value(self) -> typing.Any:
+    def value(self) -> T:
         """
         Converts the adapted value back to a Python type.
         """
@@ -1613,7 +1613,7 @@ def not_(arg1: Expr) -> Expr:
     """
     ...
 
-class Column:
+class Column(typing.Generic[T]):
     """
     Defines a table column with its properties and constraints.
 
@@ -1629,15 +1629,15 @@ class Column:
     a column behaves and what data it can store.
 
     Example:
-        >>> Column("id", Integer, primary_key=True, auto_increment=True)
+        >>> Column("id", Integer(), primary_key=True, auto_increment=True)
         >>> Column("name", String(255), nullable=False, default="unknown")
-        >>> Column("created_at", Timestamp, default=Expr.current_timestamp())
+        >>> Column("created_at", Timestamp(), default=Expr.current_timestamp())
     """
 
     name: str
     """The name of the column."""
 
-    type: ColumnTypeMeta
+    type: ColumnTypeMeta[T]
     """The data type of the column."""
 
     primary_key: bool
@@ -1670,7 +1670,7 @@ class Column:
     def __new__(
         cls,
         name: str,
-        type: ColumnTypeMeta,
+        type: ColumnTypeMeta[T],
         primary_key: bool = ...,
         unique: bool = ...,
         nullable: bool = ...,
@@ -1719,6 +1719,12 @@ class Column:
 
         Returns:
             An Expr representing this column
+        """
+        ...
+
+    def adapt(self, value: T) -> AdaptedValue[T]:
+        """
+        Shorthand for `AdaptedValue(value, type=self.type)`
         """
         ...
 
@@ -3116,7 +3122,7 @@ class Delete:
         """
         ...
 
-    def limit(self, n: int = ...) -> Self:
+    def limit(self, n: int) -> Self:
         """
         Limit the number of rows to delete.
 
@@ -3196,4 +3202,19 @@ class Delete:
         """
         ...
 
+    def __repr__(self) -> str: ...
+
+
+class Update:
+    def __new__(cls) -> Self: ...
+    def table(self, table: typing.Union[str, Table, TableName]) -> Self: ...
+    def from_table(self, table: typing.Union[str, Table, TableName]) -> Self: ...
+    def values(self, **kwds: _ExprValue) -> Self: ...
+    def where(self, condition: _ExprValue) -> Self: ...
+    def order_by(self, order: Order) -> Self: ...
+    def returning(self, *args: typing.Union[Column, str]) -> Self: ...
+    def returning_all(self) -> Self: ...
+    def limit(self, n: int) -> Self: ...
+    def build(self, backend: _Backends) -> typing.Tuple[str, typing.Tuple[AdaptedValue, ...]]: ...
+    def to_sql(self, backend: _Backends) -> str: ...
     def __repr__(self) -> str: ...

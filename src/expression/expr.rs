@@ -5,6 +5,7 @@ use pyo3::types::PyAnyMethods;
 /// A bridge between Python & [`sea_query::SimpleExpr`]
 #[pyo3::pyclass(module = "rapidquery._lib", name = "Expr", frozen)]
 pub struct PyExpr {
+    // TOD: support subquery and case
     pub(crate) inner: sea_query::SimpleExpr,
 }
 

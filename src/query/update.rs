@@ -1,29 +1,40 @@
-use pyo3::types::{PyAnyMethods, PyTupleMethods};
+use pyo3::types::{PyAnyMethods, PyDictMethods, PyTupleMethods};
 use sea_query::IntoIden;
 
 #[derive(Default)]
-pub struct DeleteInner {
+pub struct UpdateInner {
     // Always is `Option<TableName>`
     pub table: Option<pyo3::Py<pyo3::PyAny>>,
+
+    // Always is `Option<TableName>`
+    pub from: Option<pyo3::Py<pyo3::PyAny>>,
+
+    // Always is `Vec<String, PyExpr>`
+    pub values: Vec<(String, pyo3::Py<pyo3::PyAny>)>,
 
     // Always is `Option<PyExpr>`
     pub r#where: Option<pyo3::Py<pyo3::PyAny>>,
     pub limit: Option<u64>,
-    pub returning_clause: super::returning::ReturningClause,
 
     // Always is `Vec<PyOrder>`
     pub orders: Vec<pyo3::Py<pyo3::PyAny>>,
+    pub returning_clause: super::returning::ReturningClause,
     // TODO
     // pub with: Option<pyo3::Py<pyo3::PyAny>>,
 }
 
-impl DeleteInner {
-    fn as_statement(&self, py: pyo3::Python) -> sea_query::DeleteStatement {
-        let mut stmt = sea_query::DeleteStatement::new();
+impl UpdateInner {
+    fn as_statement(&self, py: pyo3::Python) -> sea_query::UpdateStatement {
+        let mut stmt = sea_query::UpdateStatement::new();
 
         if let Some(x) = &self.table {
             let x = unsafe { x.cast_bound_unchecked::<crate::common::PyTableName>(py) };
-            stmt.from_table(x.get().clone());
+            stmt.table(x.get().clone());
+        }
+
+        if let Some(x) = &self.from {
+            let x = unsafe { x.cast_bound_unchecked::<crate::common::PyTableName>(py) };
+            stmt.from(x.get().clone());
         }
 
         if let Some(x) = &self.r#where {
@@ -34,6 +45,12 @@ impl DeleteInner {
         if let Some(n) = self.limit {
             stmt.limit(n);
         }
+
+        stmt.values(self.values.iter().map(|(key, val)| {
+            let val = unsafe { val.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
+
+            (sea_query::Alias::new(key), val.get().inner.clone())
+        }));
 
         match &self.returning_clause {
             super::returning::ReturningClause::None => (),
@@ -72,18 +89,39 @@ impl DeleteInner {
     }
 }
 
-#[pyo3::pyclass(module = "rapidquery._lib", name = "Delete", frozen)]
-pub struct PyDelete {
-    pub inner: parking_lot::Mutex<DeleteInner>,
+#[pyo3::pyclass(module = "rapidquery._lib", name = "Update", frozen)]
+pub struct PyUpdate {
+    pub inner: parking_lot::Mutex<UpdateInner>,
 }
 
 #[pyo3::pymethods]
-impl PyDelete {
+impl PyUpdate {
     #[new]
     fn new() -> Self {
         Self {
             inner: parking_lot::Mutex::new(Default::default()),
         }
+    }
+
+    fn table<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        table: &'a pyo3::Bound<'_, pyo3::PyAny>,
+    ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
+        let table = {
+            if let Ok(x) = table.cast_exact::<crate::table::PyTable>() {
+                let guard = x.get().inner.lock();
+                guard.name.clone_ref(slf.py())
+            } else {
+                crate::common::PyTableName::from_pyobject(table)?
+            }
+        };
+
+        {
+            let mut lock = slf.inner.lock();
+            lock.table = Some(table);
+        }
+
+        Ok(slf)
     }
 
     #[allow(clippy::wrong_self_convention)]
@@ -102,7 +140,7 @@ impl PyDelete {
 
         {
             let mut lock = slf.inner.lock();
-            lock.table = Some(table);
+            lock.from = Some(table);
         }
 
         Ok(slf)
@@ -196,6 +234,33 @@ impl PyDelete {
         Ok(slf)
     }
 
+    #[pyo3(signature=(**kwds))]
+    fn values<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        kwds: Option<&'a pyo3::Bound<'_, pyo3::types::PyDict>>,
+    ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
+        if kwds.is_none() {
+            return Ok(slf);
+        }
+
+        let kwds = unsafe { kwds.unwrap_unchecked() };
+        let mut vals = Vec::<(String, pyo3::Py<pyo3::PyAny>)>::new();
+
+        unsafe {
+            for (key, value) in kwds.iter() {
+                let key = key.extract::<String>().unwrap_unchecked();
+                vals.push((key, crate::expression::PyExpr::from_bound_into_any(value)?));
+            }
+        }
+
+        {
+            let mut lock = slf.inner.lock();
+            lock.values = vals;
+        }
+
+        Ok(slf)
+    }
+
     fn build(
         &self,
         backend: &pyo3::Bound<'_, pyo3::PyAny>,
@@ -221,10 +286,13 @@ impl PyDelete {
         let lock = self.inner.lock();
         let mut s = Vec::<u8>::with_capacity(30);
 
-        write!(s, "<Delete").unwrap();
+        write!(s, "<Update").unwrap();
 
         if let Some(x) = &lock.table {
-            write!(s, " from_table={x}").unwrap();
+            write!(s, " table={x}").unwrap();
+        }
+        if let Some(x) = &lock.from {
+            write!(s, " from={x}").unwrap();
         }
         if let Some(x) = lock.limit {
             write!(s, " limit={x}").unwrap();
@@ -251,6 +319,17 @@ impl PyDelete {
             }
             super::returning::ReturningClause::Columns(x) => {
                 write!(s, " returning={x:?}").unwrap();
+            }
+        }
+
+        write!(s, " values=[").unwrap();
+
+        let n = lock.values.len();
+        for (index, expr) in lock.values.iter().enumerate() {
+            if index + 1 == n {
+                write!(s, "({}, {})]", &expr.0, &expr.1).unwrap();
+            } else {
+                write!(s, "({}, {}), ", &expr.0, &expr.1).unwrap();
             }
         }
 

@@ -79,6 +79,9 @@ mod _lib {
     use super::query::delete::PyDelete;
 
     #[pymodule_export]
+    use super::query::update::PyUpdate;
+
+    #[pymodule_export]
     use super::query::on_conflict::PyOnConflict;
 
     #[pymodule_export]

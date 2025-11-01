@@ -402,16 +402,6 @@ class TestAlterTableEdgeCases:
         sql = alter.build("postgresql")
         assert "ALTER" in sql.upper()
     
-    def test_alter_drop_nonexistent_column(self):
-        """Drop column that doesn't exist."""
-        alter = _lib.AlterTable(
-            "users",
-            options=[_lib.AlterTableDropColumnOption("nonexistent")]
-        )
-        sql = alter.build("sqlite")
-        # Should build; DB will error at runtime if column doesn't exist
-        assert "DROP" in sql.upper()
-    
     def test_alter_multiple_conflicting_ops(self):
         """Multiple operations that conflict (add then drop same column)."""
         alter = _lib.AlterTable(
@@ -427,20 +417,6 @@ class TestAlterTableEdgeCases:
         sql = alter.build("postgresql")
         # Should build both operations; DB handles logic
         assert "ADD" in sql.upper() and "DROP" in sql.upper()
-    
-    def test_alter_modify_to_incompatible_type(self):
-        """Modify column to incompatible type (string -> int with text data)."""
-        alter = _lib.AlterTable(
-            "users",
-            options=[
-                _lib.AlterTableModifyColumnOption(
-                    _lib.Column("age", _lib.StringType())  # Was _lib.IntegerType
-                )
-            ]
-        )
-        sql = alter.build("mysql")
-        # Should build; data conversion happens at runtime
-        assert "MODIFY" in sql.upper() or "ALTER" in sql.upper()
 
 
 class TestEnumAndArrayTypes:

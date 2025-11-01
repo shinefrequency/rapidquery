@@ -438,9 +438,15 @@ impl ReturnableValue {
 ///
 /// This class handles validation, adaptation, and conversion
 /// between different type systems used in the application stack.
-#[pyo3::pyclass(module = "rapidquery._lib", name = "AdaptedValue", frozen)]
+#[pyo3::pyclass(module = "rapidquery._lib", name = "AdaptedValue", frozen, generic)]
 pub struct PyAdaptedValue {
     pub(crate) inner: parking_lot::Mutex<ReturnableValue>,
+}
+
+impl From<ReturnableValue> for PyAdaptedValue {
+    fn from(value: ReturnableValue) -> Self {
+        Self { inner: parking_lot::Mutex::new(value) }
+    }
 }
 
 #[pyo3::pymethods]
