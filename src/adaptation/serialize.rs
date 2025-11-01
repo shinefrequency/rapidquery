@@ -98,11 +98,9 @@ impl SerializedValue {
                 Self::ChronoDateTimeWithTimeZone(x) => {
                     let val = x.into_pyobject(py)?;
 
-                    Ok(
-                        super::deserialize::DeserializedValue::ChronoDateTimeWithTimeZone(
-                            NonNull::new_unchecked(val.into_ptr()),
-                        ),
-                    )
+                    Ok(super::deserialize::DeserializedValue::ChronoDateTime(
+                        NonNull::new_unchecked(val.into_ptr()),
+                    ))
                 }
                 Self::Uuid(x) => {
                     let val = x.into_pyobject(py)?;

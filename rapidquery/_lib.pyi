@@ -3204,17 +3204,150 @@ class Delete:
 
     def __repr__(self) -> str: ...
 
-
 class Update:
-    def __new__(cls) -> Self: ...
-    def table(self, table: typing.Union[str, Table, TableName]) -> Self: ...
-    def from_table(self, table: typing.Union[str, Table, TableName]) -> Self: ...
-    def values(self, **kwds: _ExprValue) -> Self: ...
-    def where(self, condition: _ExprValue) -> Self: ...
-    def order_by(self, order: Order) -> Self: ...
-    def returning(self, *args: typing.Union[Column, str]) -> Self: ...
-    def returning_all(self) -> Self: ...
-    def limit(self, n: int) -> Self: ...
-    def build(self, backend: _Backends) -> typing.Tuple[str, typing.Tuple[AdaptedValue, ...]]: ...
-    def to_sql(self, backend: _Backends) -> str: ...
+    """
+    Builds UPDATE SQL statements with a fluent interface.
+
+    Provides a chainable API for constructing UPDATE queries with support for:
+    - Setting column values
+    - WHERE conditions for filtering
+    - LIMIT for restricting update count
+    - ORDER BY for determining update order
+    - RETURNING clauses for getting updated data
+
+    Example:
+        >>> Update().table("users").values(
+        ...     status="active", last_updated=datetime.now()
+        ... ).where(Expr.col("id") == 123).returning_all()
+        >>> Update().table("users").values(budget=Expr.col("budget") + 10) \\
+        ...     .where(Expr.col("name").like(r"%ali%")) \\
+        ...     .order_by(Order(Expr.col("id"), ORDER_ASC)) \\
+        ...     .returning("age")
+    """
+
+    def __new__(cls) -> Self:
+        """
+        Create a new UPDATE statement builder.
+
+        Returns:
+            A new Update instance
+        """
+        ...
+
+    def table(self, table: typing.Union[str, Table, TableName]) -> Self:
+        """
+        Specify the table to update.
+
+        Args:
+            table: The table name, Table object, or TableName
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def from_table(self, table: typing.Union[str, Table, TableName]) -> Self:
+        """
+        Specify the table to update (alias for table()).
+
+        Args:
+            table: The table name, Table object, or TableName
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def values(self, **kwds: _ExprValue) -> Self:
+        """
+        Specify columns and their new values.
+
+        Args:
+            **kwds: Column names and their new values as keyword arguments
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def where(self, condition: _ExprValue) -> Self:
+        """
+        Add a WHERE condition to filter rows to update.
+
+        Args:
+            condition: The filter condition expression
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def order_by(self, order: Order) -> Self:
+        """
+        Specify the order in which to update rows.
+
+        Typically used with LIMIT to update specific rows.
+
+        Args:
+            order: The ordering specification
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def returning(self, *args: typing.Union[Column, str]) -> Self:
+        """
+        Specify columns to return from the updated rows.
+
+        Args:
+            *args: Column names or Column objects to return
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def returning_all(self) -> Self:
+        """
+        Return all columns from the updated rows.
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def limit(self, n: int) -> Self:
+        """
+        Limit the number of rows to update.
+
+        Args:
+            n: Maximum number of rows to update
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def build(self, backend: _Backends) -> typing.Tuple[str, typing.Tuple[AdaptedValue, ...]]:
+        """
+        Build the UPDATE SQL statement with parameter values.
+
+        Args:
+            backend: The database backend that determines SQL dialect
+
+        Returns:
+            A tuple of (SQL string, parameter values)
+        """
+        ...
+
+    def to_sql(self, backend: _Backends) -> str:
+        """
+        Build the UPDATE SQL statement as a plain string with values inlined.
+
+        **do NOT execute the result of this method** because this function does not
+        use parametized SQL, and easy can cause SQL injection. **use `build` method instead**.
+        """
+        ...
+
     def __repr__(self) -> str: ...

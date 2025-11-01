@@ -102,9 +102,7 @@ macro_rules! build_query_parts {
                 .into_iter()
                 .map(|x| $crate::adaptation::SerializedValue::from(x))
                 .map(|x| $crate::adaptation::ReturnableValue::from(x))
-                .map(|x| $crate::adaptation::PyAdaptedValue {
-                    inner: parking_lot::Mutex::new(x),
-                })
+                .map(|x| $crate::adaptation::PyAdaptedValue::from(x))
         };
 
         unsafe {

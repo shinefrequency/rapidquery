@@ -506,10 +506,8 @@ impl PyColumn {
     ) -> pyo3::PyResult<crate::adaptation::PyAdaptedValue> {
         let py = value.py();
         let lock = self.inner.lock();
-        let value = crate::adaptation::ReturnableValue::from_bound(
-            value,
-            Some(lock.r#type.bind(py)),
-        )?;
+        let value =
+            crate::adaptation::ReturnableValue::from_bound(value, Some(lock.r#type.bind(py)))?;
 
         Ok(value.into())
     }

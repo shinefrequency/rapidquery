@@ -13,8 +13,10 @@ pub enum DeserializedValue {
     Json(NonNull<pyo3::ffi::PyObject>),
     ChronoDate(NonNull<pyo3::ffi::PyObject>),
     ChronoTime(NonNull<pyo3::ffi::PyObject>),
-    ChronoDateTime(NonNull<pyo3::ffi::PyObject>),
-    ChronoDateTimeWithTimeZone(NonNull<pyo3::ffi::PyObject>),
+    ChronoDateTime(
+        // May have tzinfo
+        NonNull<pyo3::ffi::PyObject>,
+    ),
     Uuid(NonNull<pyo3::ffi::PyObject>),
     Decimal(NonNull<pyo3::ffi::PyObject>),
     Array(Vec<DeserializedValue>),
@@ -54,10 +56,6 @@ impl Clone for DeserializedValue {
                     pyo3::ffi::Py_INCREF(x.as_ptr());
                     Self::ChronoDateTime(*x)
                 }
-                Self::ChronoDateTimeWithTimeZone(x) => {
-                    pyo3::ffi::Py_INCREF(x.as_ptr());
-                    Self::ChronoDateTimeWithTimeZone(*x)
-                }
                 Self::Uuid(x) => {
                     pyo3::ffi::Py_INCREF(x.as_ptr());
                     Self::Uuid(*x)
@@ -91,7 +89,6 @@ impl Drop for DeserializedValue {
                 Self::ChronoDate(x) => pyo3::ffi::Py_DECREF(x.as_ptr()),
                 Self::ChronoTime(x) => pyo3::ffi::Py_DECREF(x.as_ptr()),
                 Self::ChronoDateTime(x) => pyo3::ffi::Py_DECREF(x.as_ptr()),
-                Self::ChronoDateTimeWithTimeZone(x) => pyo3::ffi::Py_DECREF(x.as_ptr()),
                 Self::Uuid(x) => pyo3::ffi::Py_DECREF(x.as_ptr()),
                 Self::Decimal(x) => pyo3::ffi::Py_DECREF(x.as_ptr()),
                 Self::Array(_) => (),
@@ -141,11 +138,6 @@ impl DeserializedValue {
                 x
             }
             Self::ChronoDateTime(x) => {
-                let x = x.as_ptr();
-                pyo3::ffi::Py_INCREF(x);
-                x
-            }
-            Self::ChronoDateTimeWithTimeZone(x) => {
                 let x = x.as_ptr();
                 pyo3::ffi::Py_INCREF(x);
                 x
@@ -245,7 +237,7 @@ impl DeserializedValue {
                     ))
                 }
                 Self::ChronoTime(op) => {
-                    let val: pyo3::Bound<'_, pyo3::types::PyDate> =
+                    let val: pyo3::Bound<'_, pyo3::types::PyTime> =
                         pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).cast_into()?;
 
                     Ok(super::serialize::SerializedValue::ChronoTime(
@@ -256,19 +248,24 @@ impl DeserializedValue {
                     let val: pyo3::Bound<'_, pyo3::types::PyDateTime> =
                         pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).cast_into()?;
 
-                    Ok(super::serialize::SerializedValue::ChronoDateTime(
-                        val.extract()?,
-                    ))
-                }
-                Self::ChronoDateTimeWithTimeZone(op) => {
-                    let val: pyo3::Bound<'_, pyo3::types::PyDateTime> =
-                        pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).cast_into()?;
+                    let tzinfo = pyo3::ffi::PyObject_GetAttr(
+                        val.as_ptr(),
+                        pyo3::intern!(py, "tzinfo").as_ptr(),
+                    );
 
-                    Ok(
-                        super::serialize::SerializedValue::ChronoDateTimeWithTimeZone(
+                    debug_assert!(!tzinfo.is_null());
+
+                    if pyo3::ffi::Py_IsNone(tzinfo) == 1 {
+                        Ok(super::serialize::SerializedValue::ChronoDateTime(
                             val.extract()?,
-                        ),
-                    )
+                        ))
+                    } else {
+                        Ok(
+                            super::serialize::SerializedValue::ChronoDateTimeWithTimeZone(
+                                val.extract()?,
+                            ),
+                        )
+                    }
                 }
                 Self::Uuid(op) => {
                     let val: uuid::Uuid =

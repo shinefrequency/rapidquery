@@ -515,11 +515,11 @@ impl PyEnumType {
     #[new]
     fn new(name: String, mut variants: Vec<String>) -> pyo3::PyResult<(Self, PyColumnTypeMeta)> {
         if variants.is_empty() {
-            return Err(
-                pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>("variants cannot be empty")
-            );
+            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "variants cannot be empty",
+            ));
         }
-        
+
         variants.sort_unstable();
         variants.dedup();
 

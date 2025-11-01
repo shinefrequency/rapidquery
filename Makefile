@@ -35,3 +35,5 @@ fmt:
 	cargo fmt
 	ruff format --line-length=100 .
 	ruff clean
+
+ready: fmt test-full

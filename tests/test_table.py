@@ -367,9 +367,7 @@ class TestIntegration:
 
         indexes = [Index(columns=["title"], name="idx_title")]
 
-        foreign_keys = [
-            ForeignKey(from_columns=["user_id"], to_columns=["id"], to_table="users")
-        ]
+        foreign_keys = [ForeignKey(from_columns=["user_id"], to_columns=["id"], to_table="users")]
 
         table = Table(name="posts", columns=columns, indexes=indexes, foreign_keys=foreign_keys)
 

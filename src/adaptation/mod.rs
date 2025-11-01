@@ -163,7 +163,7 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(DeserializedValue::ChronoDateTimeWithTimeZone(
+                Ok(Self::from(DeserializedValue::ChronoDateTime(
                     NonNull::new_unchecked(object.into_ptr()),
                 )))
             },
@@ -325,31 +325,31 @@ impl ReturnableValue {
                 ))));
             }
 
-            if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DECIMAL_TYPE) == 1 {
+            if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_DECIMAL_TYPE {
                 return Ok(Self::from(DeserializedValue::Decimal(
                     NonNull::new_unchecked(object.into_ptr()),
                 )));
             }
 
-            if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DATETIME_TYPE) == 1 {
-                return Ok(Self::from(DeserializedValue::ChronoDateTimeWithTimeZone(
+            if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_DATETIME_TYPE {
+                return Ok(Self::from(DeserializedValue::ChronoDateTime(
                     NonNull::new_unchecked(object.into_ptr()),
                 )));
             }
 
-            if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DATE_TYPE) == 1 {
+            if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_DATE_TYPE {
                 return Ok(Self::from(DeserializedValue::ChronoDate(
                     NonNull::new_unchecked(object.into_ptr()),
                 )));
             }
 
-            if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_TIME_TYPE) == 1 {
+            if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_TIME_TYPE {
                 return Ok(Self::from(DeserializedValue::ChronoTime(
                     NonNull::new_unchecked(object.into_ptr()),
                 )));
             }
 
-            if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_UUID_TYPE) == 1 {
+            if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_UUID_TYPE {
                 return Ok(Self::from(DeserializedValue::Uuid(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))));
@@ -445,7 +445,9 @@ pub struct PyAdaptedValue {
 
 impl From<ReturnableValue> for PyAdaptedValue {
     fn from(value: ReturnableValue) -> Self {
-        Self { inner: parking_lot::Mutex::new(value) }
+        Self {
+            inner: parking_lot::Mutex::new(value),
+        }
     }
 }
 
@@ -540,7 +542,6 @@ impl PyAdaptedValue {
         matches!(
             lock.deserialized.as_ref(),
             Some(DeserializedValue::ChronoDateTime(_))
-                | Some(DeserializedValue::ChronoDateTimeWithTimeZone(_))
         ) || matches!(
             lock.serialized.as_ref(),
             Some(SerializedValue::ChronoDateTime(_))
