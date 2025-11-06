@@ -31,6 +31,7 @@ mod typeref;
 #[pyo3::pymodule(gil_used = false)]
 mod _lib {
     use pyo3::types::PyModuleMethods;
+    use sea_query::extension::postgres::PostgresSelectStatementExt;
 
     #[pymodule_export]
     use super::backend::{PyQueryStatement, PySchemaStatement};
@@ -40,12 +41,11 @@ mod _lib {
 
     #[pymodule_export]
     use super::column::types::{
-        PyArrayType, PyBigIntegerType, PyBigUnsignedType, PyBinaryType, PyBitType, PyBlobType,
-        PyBooleanType, PyCharType, PyCidrType, PyDateTimeType, PyDateType, PyDecimalType,
-        PyDoubleType, PyEnumType, PyFloatType, PyInetType, PyIntegerType, PyIntervalType,
-        PyJsonBinaryType, PyJsonType, PyLTreeType, PyMacAddressType, PyMoneyType,
-        PySmallIntegerType, PySmallUnsignedType, PyStringType, PyTextType, PyTimeType,
-        PyTimestampType, PyTimestampWithTimeZoneType, PyTinyIntegerType, PyTinyUnsignedType,
+        PyArrayType, PyBigIntegerType, PyBigUnsignedType, PyBinaryType, PyBitType, PyBlobType, PyBooleanType,
+        PyCharType, PyCidrType, PyDateTimeType, PyDateType, PyDecimalType, PyDoubleType, PyEnumType,
+        PyFloatType, PyInetType, PyIntegerType, PyIntervalType, PyJsonBinaryType, PyJsonType, PyLTreeType,
+        PyMacAddressType, PyMoneyType, PySmallIntegerType, PySmallUnsignedType, PyStringType, PyTextType,
+        PyTimeType, PyTimestampType, PyTimestampWithTimeZoneType, PyTinyIntegerType, PyTinyUnsignedType,
         PyUnsignedType, PyUuidType, PyVarBinaryType, PyVarBitType, PyVectorType, PyYearType,
     };
 
@@ -70,9 +70,9 @@ mod _lib {
     #[pymodule_export]
     use super::table::{
         PyAlterTable, PyAlterTableAddColumnOption, PyAlterTableAddForeignKeyOption,
-        PyAlterTableDropColumnOption, PyAlterTableDropForeignKeyOption,
-        PyAlterTableModifyColumnOption, PyAlterTableOptionMeta, PyAlterTableRenameColumnOption,
-        PyDropTable, PyRenameTable, PyTable, PyTruncateTable,
+        PyAlterTableDropColumnOption, PyAlterTableDropForeignKeyOption, PyAlterTableModifyColumnOption,
+        PyAlterTableOptionMeta, PyAlterTableRenameColumnOption, PyDropTable, PyRenameTable, PyTable,
+        PyTruncateTable,
     };
 
     #[pymodule_export]
@@ -98,22 +98,10 @@ mod _lib {
         m.add("INTERVAL_HOUR", sea_query::PgInterval::Hour as u8)?;
         m.add("INTERVAL_MINUTE", sea_query::PgInterval::Minute as u8)?;
         m.add("INTERVAL_SECOND", sea_query::PgInterval::Second as u8)?;
-        m.add(
-            "INTERVAL_YEAR_TO_MONTH",
-            sea_query::PgInterval::YearToMonth as u8,
-        )?;
-        m.add(
-            "INTERVAL_DAY_TO_HOUR",
-            sea_query::PgInterval::DayToHour as u8,
-        )?;
-        m.add(
-            "INTERVAL_DAY_TO_MINUTE",
-            sea_query::PgInterval::DayToMinute as u8,
-        )?;
-        m.add(
-            "INTERVAL_DAY_TO_SECOND",
-            sea_query::PgInterval::DayToSecond as u8,
-        )?;
+        m.add("INTERVAL_YEAR_TO_MONTH", sea_query::PgInterval::YearToMonth as u8)?;
+        m.add("INTERVAL_DAY_TO_HOUR", sea_query::PgInterval::DayToHour as u8)?;
+        m.add("INTERVAL_DAY_TO_MINUTE", sea_query::PgInterval::DayToMinute as u8)?;
+        m.add("INTERVAL_DAY_TO_SECOND", sea_query::PgInterval::DayToSecond as u8)?;
         m.add(
             "INTERVAL_HOUR_TO_MINUTE",
             sea_query::PgInterval::HourToMinute as u8,

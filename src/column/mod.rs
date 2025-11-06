@@ -166,16 +166,14 @@ impl ColumnInner {
         }
 
         if let Some(default) = &self.default {
-            let default_expr =
-                unsafe { default.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
+            let default_expr = unsafe { default.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
 
             let default_expr = default_expr.get();
             column_def.default(default_expr.inner.clone());
         }
 
         if let Some(generated) = &self.generated {
-            let generated_expr =
-                unsafe { generated.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
+            let generated_expr = unsafe { generated.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
 
             let generated_expr = generated_expr.get();
 
@@ -286,18 +284,17 @@ impl PyColumn {
         let default_expr = {
             match default {
                 OptionalParam::Undefined => None,
-                OptionalParam::Defined(x) => Some(
-                    crate::expression::PyExpr::try_with_specific_type(x.to_owned(), Some(r#type))?,
-                ),
+                OptionalParam::Defined(x) => Some(crate::expression::PyExpr::try_with_specific_type(
+                    x.to_owned(),
+                    Some(r#type),
+                )?),
             }
         };
 
         let generated_expr = {
             match generated {
                 OptionalParam::Undefined => None,
-                OptionalParam::Defined(x) => {
-                    Some(crate::expression::PyExpr::try_from(x.to_owned())?)
-                }
+                OptionalParam::Defined(x) => Some(crate::expression::PyExpr::try_from(x.to_owned())?),
             }
         };
 
@@ -452,11 +449,7 @@ impl PyColumn {
 
     #[getter]
     fn default(slf: pyo3::PyRef<'_, Self>) -> Option<pyo3::Py<pyo3::PyAny>> {
-        slf.inner
-            .lock()
-            .default
-            .as_ref()
-            .map(|x| x.clone_ref(slf.py()))
+        slf.inner.lock().default.as_ref().map(|x| x.clone_ref(slf.py()))
     }
 
     #[setter]
@@ -472,11 +465,7 @@ impl PyColumn {
 
     #[getter]
     fn generated(slf: pyo3::PyRef<'_, Self>) -> Option<pyo3::Py<pyo3::PyAny>> {
-        slf.inner
-            .lock()
-            .generated
-            .as_ref()
-            .map(|x| x.clone_ref(slf.py()))
+        slf.inner.lock().generated.as_ref().map(|x| x.clone_ref(slf.py()))
     }
 
     #[setter]
@@ -506,8 +495,7 @@ impl PyColumn {
     ) -> pyo3::PyResult<crate::adaptation::PyAdaptedValue> {
         let py = value.py();
         let lock = self.inner.lock();
-        let value =
-            crate::adaptation::ReturnableValue::from_bound(value, Some(lock.r#type.bind(py)))?;
+        let value = crate::adaptation::ReturnableValue::from_bound(value, Some(lock.r#type.bind(py)))?;
 
         Ok(value.into())
     }

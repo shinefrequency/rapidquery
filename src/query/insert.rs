@@ -1,6 +1,6 @@
+use crate::backend::PyQueryStatement;
 use pyo3::types::{PyAnyMethods, PyDictMethods, PyTupleMethods};
 use sea_query::IntoIden;
-use crate::backend::PyQueryStatement;
 
 #[derive(Debug, Default)]
 pub enum InsertValueSource {
@@ -280,9 +280,7 @@ impl PyInsert {
         kwds: Option<&'a pyo3::Bound<'_, pyo3::types::PyDict>>,
     ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
         if !PyTupleMethods::is_empty(args) && kwds.is_some() {
-            return Err(typeerror!(
-                "cannot use both args and kwargs at the same time",
-            ));
+            return Err(typeerror!("cannot use both args and kwargs at the same time",));
         }
 
         if !PyTupleMethods::is_empty(args) {

@@ -20,9 +20,9 @@ impl FromStr for ForeignKeyActionAlias {
         } else if lower == "set null" {
             Ok(Self(sea_query::ForeignKeyAction::SetNull))
         } else {
-            Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!("unknown foreign key action: {s}"),
-            ))
+            Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "unknown foreign key action: {s}"
+            )))
         }
     }
 }
@@ -86,8 +86,7 @@ impl ForeignKeyInner {
         stmt.name(&self.name);
 
         if let Some(from_table) = &self.from_table {
-            let from_table =
-                unsafe { from_table.cast_bound_unchecked::<crate::common::PyTableName>(py) };
+            let from_table = unsafe { from_table.cast_bound_unchecked::<crate::common::PyTableName>(py) };
 
             stmt.from_tbl(from_table.get().clone());
         }
@@ -215,13 +214,11 @@ impl PyForeignKey {
         }
 
         if from_columns.len() != to_columns.len() {
-            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!(
-                    "from_columns and to_columns must have same length ({} != {})",
-                    from_columns.len(),
-                    to_columns.len()
-                ),
-            ));
+            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "from_columns and to_columns must have same length ({} != {})",
+                from_columns.len(),
+                to_columns.len()
+            )));
         }
 
         Ok(Self {
@@ -251,11 +248,7 @@ impl PyForeignKey {
     #[getter]
     #[allow(clippy::wrong_self_convention)]
     fn from_table(&self, py: pyo3::Python) -> Option<pyo3::Py<pyo3::PyAny>> {
-        self.inner
-            .lock()
-            .from_table
-            .as_ref()
-            .map(|x| x.clone_ref(py))
+        self.inner.lock().from_table.as_ref().map(|x| x.clone_ref(py))
     }
 
     #[setter]
@@ -297,13 +290,11 @@ impl PyForeignKey {
         }
 
         if lock.to_columns.len() != val.len() {
-            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!(
-                    "from_columns and to_columns must have same length ({} != {})",
-                    val.len(),
-                    lock.to_columns.len(),
-                ),
-            ));
+            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "from_columns and to_columns must have same length ({} != {})",
+                val.len(),
+                lock.to_columns.len(),
+            )));
         }
 
         lock.from_columns = val;
@@ -326,13 +317,11 @@ impl PyForeignKey {
         }
 
         if lock.from_columns.len() != val.len() {
-            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                format!(
-                    "from_columns and to_columns must have same length ({} != {})",
-                    lock.from_columns.len(),
-                    val.len()
-                ),
-            ));
+            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                "from_columns and to_columns must have same length ({} != {})",
+                lock.from_columns.len(),
+                val.len()
+            )));
         }
 
         lock.to_columns = val;

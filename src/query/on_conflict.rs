@@ -33,8 +33,7 @@ impl OnConflictInner {
     #[inline]
     #[optimize(speed)]
     pub(super) fn as_statement(&self, py: pyo3::Python) -> sea_query::OnConflict {
-        let mut stmt =
-            sea_query::OnConflict::columns(self.targets.iter().map(sea_query::Alias::new));
+        let mut stmt = sea_query::OnConflict::columns(self.targets.iter().map(sea_query::Alias::new));
 
         match &self.action {
             OnConflictAction::None => (),
@@ -111,9 +110,7 @@ impl PyOnConflict {
             unsafe {
                 if pyo3::ffi::Py_TYPE(key.as_ptr()) == crate::typeref::COLUMN_TYPE {
                     let col = key.cast_into_unchecked::<crate::column::PyColumn>();
-                    action.push(OnConflictUpdate::Column(
-                        col.get().inner.lock().name.clone(),
-                    ));
+                    action.push(OnConflictUpdate::Column(col.get().inner.lock().name.clone()));
                 } else if pyo3::ffi::PyUnicode_CheckExact(key.as_ptr()) == 1 {
                     action.push(OnConflictUpdate::Column(
                         key.extract::<String>().unwrap_unchecked(),
@@ -229,9 +226,7 @@ impl PyOnConflict {
         kwds: Option<&'a pyo3::Bound<'_, pyo3::types::PyDict>>,
     ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
         if !PyTupleMethods::is_empty(args) && kwds.is_some() {
-            return Err(typeerror!(
-                "cannot use both args and kwargs at the same time",
-            ));
+            return Err(typeerror!("cannot use both args and kwargs at the same time",));
         }
 
         if !PyTupleMethods::is_empty(args) {

@@ -1,6 +1,6 @@
+use crate::backend::PyQueryStatement;
 use pyo3::types::{PyAnyMethods, PyDictMethods, PyTupleMethods};
 use sea_query::IntoIden;
-use crate::backend::PyQueryStatement;
 
 #[derive(Default)]
 pub struct UpdateInner {
@@ -72,11 +72,7 @@ impl UpdateInner {
             let order = unsafe { order.cast_bound_unchecked::<super::order::PyOrder>(py) };
             let order = order.get();
 
-            let target = unsafe {
-                order
-                    .target
-                    .cast_bound_unchecked::<crate::expression::PyExpr>(py)
-            };
+            let target = unsafe { order.target.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
             let target = target.get().inner.clone();
 
             if let Some(x) = order.null_order {
@@ -220,11 +216,7 @@ impl PyUpdate {
             if order.is_exact_instance_of::<super::order::PyOrder>() {
                 order.clone().unbind()
             } else {
-                return Err(typeerror!(
-                    "expected Order, got {:?}",
-                    order.py(),
-                    order.as_ptr()
-                ));
+                return Err(typeerror!("expected Order, got {:?}", order.py(), order.as_ptr()));
             }
         };
 

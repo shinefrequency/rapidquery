@@ -15,7 +15,9 @@ impl From<String> for IndexTypeAlias {
         } else if lower == "btree" {
             Self(sea_query::IndexType::BTree)
         } else {
-            Self(sea_query::IndexType::Custom(sea_query::Alias::new(value).into_iden()))
+            Self(sea_query::IndexType::Custom(
+                sea_query::Alias::new(value).into_iden(),
+            ))
         }
     }
 }
@@ -179,7 +181,11 @@ fn convert_pyobject_into_index_column(
             return Ok(pyo3::Py::new(py, crate::common::PyIndexColumn::from(x))?.into_any());
         }
 
-        Err(typeerror!("expected IndexColumn or str, got {:?}", py, obj.as_ptr()))
+        Err(typeerror!(
+            "expected IndexColumn or str, got {:?}",
+            py,
+            obj.as_ptr()
+        ))
     }
 }
 
@@ -531,7 +537,11 @@ pub struct PyDropIndex {
 impl PyDropIndex {
     #[new]
     #[pyo3(signature=(name, table=None, if_exists=false))]
-    fn new(name: String, table: Option<&pyo3::Bound<'_, pyo3::PyAny>>, if_exists: bool) -> pyo3::PyResult<Self> {
+    fn new(
+        name: String,
+        table: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+        if_exists: bool,
+    ) -> pyo3::PyResult<Self> {
         let table: Option<pyo3::Py<pyo3::PyAny>> = {
             match table {
                 Some(table) => Some(crate::common::PyTableName::from_pyobject(table)?),
@@ -539,7 +549,11 @@ impl PyDropIndex {
             }
         };
 
-        let inner = DropIndexInner { name, table, if_exists };
+        let inner = DropIndexInner {
+            name,
+            table,
+            if_exists,
+        };
 
         Ok(Self {
             inner: parking_lot::Mutex::new(inner),

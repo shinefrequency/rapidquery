@@ -18,9 +18,7 @@ impl From<sea_query::SimpleExpr> for PyExpr {
 impl PyExpr {
     #[inline]
     #[optimize(speed)]
-    pub fn from_bound_into_any(
-        x: pyo3::Bound<'_, pyo3::PyAny>,
-    ) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
+    pub fn from_bound_into_any(x: pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
         unsafe {
             if pyo3::ffi::Py_TYPE(x.as_ptr()) == crate::typeref::EXPR_TYPE {
                 Ok(x.unbind())
@@ -74,9 +72,7 @@ impl PyExpr {
     {
         let values = sea_query::Expr::tuple(values);
 
-        Self {
-            inner: values.into(),
-        }
+        Self { inner: values.into() }
     }
 
     pub fn try_with_specific_type(
@@ -300,10 +296,7 @@ impl PyExpr {
     }
 
     fn cast_as(slf: pyo3::PyRef<'_, Self>, value: String) -> Self {
-        slf.inner
-            .clone()
-            .cast_as(sea_query::Alias::new(value))
-            .into()
+        slf.inner.clone().cast_as(sea_query::Alias::new(value)).into()
     }
 
     #[pyo3(signature=(pattern, escape=None))]
@@ -328,82 +321,52 @@ impl PyExpr {
         }
     }
 
-    fn __eq__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __eq__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::eq(slf.inner.clone(), other.inner).into())
     }
 
-    fn __ne__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __ne__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::ne(slf.inner.clone(), other.inner).into())
     }
 
-    fn __gt__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __gt__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::gt(slf.inner.clone(), other.inner).into())
     }
 
-    fn __ge__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __ge__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::gte(slf.inner.clone(), other.inner).into())
     }
 
-    fn __lt__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __lt__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::lt(slf.inner.clone(), other.inner).into())
     }
 
-    fn __le__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __le__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::lte(slf.inner.clone(), other.inner).into())
     }
 
-    fn __add__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __add__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::add(slf.inner.clone(), other.inner).into())
     }
 
-    fn __sub__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __sub__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::sub(slf.inner.clone(), other.inner).into())
     }
 
-    fn __and__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __and__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::bit_and(slf.inner.clone(), other.inner).into())
     }
 
-    fn __or__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __or__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::or(slf.inner.clone(), other.inner).into())
     }
@@ -416,18 +379,12 @@ impl PyExpr {
         Ok(sea_query::ExprTrait::div(slf.inner.clone(), other.inner).into())
     }
 
-    fn is_<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn is_<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::is(slf.inner.clone(), other.inner).into())
     }
 
-    fn is_not<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn is_not<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::is_not(slf.inner.clone(), other.inner).into())
     }
@@ -456,18 +413,12 @@ impl PyExpr {
         Ok(sea_query::ExprTrait::right_shift(slf.inner.clone(), other.inner).into())
     }
 
-    fn __mod__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __mod__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::modulo(slf.inner.clone(), other.inner).into())
     }
 
-    fn __mul__<'a>(
-        slf: pyo3::PyRef<'a, Self>,
-        other: &pyo3::Bound<'a, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
+    fn __mul__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::mul(slf.inner.clone(), other.inner).into())
     }
@@ -477,10 +428,7 @@ impl PyExpr {
         other: &pyo3::Bound<'a, pyo3::PyAny>,
     ) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
-        Ok(
-            sea_query::extension::sqlite::SqliteExpr::matches(slf.inner.clone(), other.inner)
-                .into(),
-        )
+        Ok(sea_query::extension::sqlite::SqliteExpr::matches(slf.inner.clone(), other.inner).into())
     }
 
     fn sqlite_glob<'a>(
@@ -496,13 +444,7 @@ impl PyExpr {
         other: &pyo3::Bound<'a, pyo3::PyAny>,
     ) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
-        Ok(
-            sea_query::extension::sqlite::SqliteExpr::get_json_field(
-                slf.inner.clone(),
-                other.inner,
-            )
-            .into(),
-        )
+        Ok(sea_query::extension::sqlite::SqliteExpr::get_json_field(slf.inner.clone(), other.inner).into())
     }
 
     fn sqlite_cast_json_field<'a>(
@@ -510,11 +452,7 @@ impl PyExpr {
         other: &pyo3::Bound<'a, pyo3::PyAny>,
     ) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
-        Ok(sea_query::extension::sqlite::SqliteExpr::cast_json_field(
-            slf.inner.clone(),
-            other.inner,
-        )
-        .into())
+        Ok(sea_query::extension::sqlite::SqliteExpr::cast_json_field(slf.inner.clone(), other.inner).into())
     }
 
     fn pg_concat<'a>(
@@ -530,10 +468,7 @@ impl PyExpr {
         other: &pyo3::Bound<'a, pyo3::PyAny>,
     ) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
-        Ok(
-            sea_query::extension::postgres::PgExpr::contained(slf.inner.clone(), other.inner)
-                .into(),
-        )
+        Ok(sea_query::extension::postgres::PgExpr::contained(slf.inner.clone(), other.inner).into())
     }
 
     fn pg_get_json_field<'a>(
@@ -541,10 +476,7 @@ impl PyExpr {
         other: &pyo3::Bound<'a, pyo3::PyAny>,
     ) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
-        Ok(
-            sea_query::extension::postgres::PgExpr::get_json_field(slf.inner.clone(), other.inner)
-                .into(),
-        )
+        Ok(sea_query::extension::postgres::PgExpr::get_json_field(slf.inner.clone(), other.inner).into())
     }
 
     fn pg_cast_json_field<'a>(
@@ -552,10 +484,7 @@ impl PyExpr {
         other: &pyo3::Bound<'a, pyo3::PyAny>,
     ) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
-        Ok(
-            sea_query::extension::postgres::PgExpr::cast_json_field(slf.inner.clone(), other.inner)
-                .into(),
-        )
+        Ok(sea_query::extension::postgres::PgExpr::cast_json_field(slf.inner.clone(), other.inner).into())
     }
 
     fn pg_contains<'a>(

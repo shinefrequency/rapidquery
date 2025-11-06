@@ -31,40 +31,28 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn min(
-        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
-        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
-    ) -> Self {
+    fn min(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::min(expr.get().inner.clone())),
         }
     }
 
     #[classmethod]
-    fn max(
-        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
-        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
-    ) -> Self {
+    fn max(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::max(expr.get().inner.clone())),
         }
     }
 
     #[classmethod]
-    fn abs(
-        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
-        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
-    ) -> Self {
+    fn abs(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::abs(expr.get().inner.clone())),
         }
     }
 
     #[classmethod]
-    fn avg(
-        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
-        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
-    ) -> Self {
+    fn avg(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::avg(expr.get().inner.clone())),
         }
@@ -86,9 +74,7 @@ impl PyFunctionCall {
         expr: &pyo3::Bound<'_, super::expr::PyExpr>,
     ) -> Self {
         Self {
-            inner: parking_lot::Mutex::new(sea_query::Func::count_distinct(
-                expr.get().inner.clone(),
-            )),
+            inner: parking_lot::Mutex::new(sea_query::Func::count_distinct(expr.get().inner.clone())),
         }
     }
 
@@ -119,10 +105,7 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn least(
-        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
-        exprs: Vec<pyo3::Py<super::expr::PyExpr>>,
-    ) -> Self {
+    fn least(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, exprs: Vec<pyo3::Py<super::expr::PyExpr>>) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::least(
                 exprs.into_iter().map(|x| x.get().inner.clone()),
@@ -210,10 +193,7 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
-    fn md5(
-        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
-        expr: &pyo3::Bound<'_, super::expr::PyExpr>,
-    ) -> Self {
+    fn md5(_cls: &pyo3::Bound<'_, pyo3::types::PyType>, expr: &pyo3::Bound<'_, super::expr::PyExpr>) -> Self {
         Self {
             inner: parking_lot::Mutex::new(sea_query::Func::md5(expr.get().inner.clone())),
         }

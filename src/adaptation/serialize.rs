@@ -21,10 +21,7 @@ pub enum SerializedValue {
 }
 
 impl SerializedValue {
-    pub fn deserialize(
-        &self,
-        py: pyo3::Python<'_>,
-    ) -> pyo3::PyResult<super::deserialize::DeserializedValue> {
+    pub fn deserialize(&self, py: pyo3::Python<'_>) -> pyo3::PyResult<super::deserialize::DeserializedValue> {
         use chrono::{Datelike, Timelike};
         use pyo3::IntoPyObject;
 
@@ -50,11 +47,9 @@ impl SerializedValue {
                     ))
                 }
                 Self::Json(x) => {
-                    let encoded = serde_json::to_vec(x).map_err(|x| {
-                        pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(x.to_string())
-                    })?;
-                    let val =
-                        pyo3::types::PyString::intern(py, std::str::from_utf8_unchecked(&encoded));
+                    let encoded = serde_json::to_vec(x)
+                        .map_err(|x| pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(x.to_string()))?;
+                    let val = pyo3::types::PyString::intern(py, std::str::from_utf8_unchecked(&encoded));
 
                     let val = super::common::_deserialize_object_with_pyjson(py, val.as_ptr())?;
                     Ok(super::deserialize::DeserializedValue::Json(
@@ -62,12 +57,8 @@ impl SerializedValue {
                     ))
                 }
                 Self::ChronoDate(x) => {
-                    let val = pyo3::types::PyDate::new(
-                        py,
-                        x.year(),
-                        (x.month0() + 1) as u8,
-                        (x.day0() + 1) as u8,
-                    )?;
+                    let val =
+                        pyo3::types::PyDate::new(py, x.year(), (x.month0() + 1) as u8, (x.day0() + 1) as u8)?;
 
                     Ok(super::deserialize::DeserializedValue::ChronoDate(
                         NonNull::new_unchecked(val.into_ptr()),
@@ -206,14 +197,10 @@ impl From<sea_query::Value> for SerializedValue {
             sea_query::Value::ChronoDate(Some(x)) => Self::ChronoDate(*x),
             sea_query::Value::ChronoTime(Some(x)) => Self::ChronoTime(*x),
             sea_query::Value::ChronoDateTime(Some(x)) => Self::ChronoDateTime(*x),
-            sea_query::Value::ChronoDateTimeWithTimeZone(Some(x)) => {
-                Self::ChronoDateTimeWithTimeZone(*x)
-            }
+            sea_query::Value::ChronoDateTimeWithTimeZone(Some(x)) => Self::ChronoDateTimeWithTimeZone(*x),
             sea_query::Value::Uuid(Some(x)) => Self::Uuid(*x),
             sea_query::Value::Decimal(Some(x)) => Self::Decimal(*x),
-            sea_query::Value::Array(_, Some(x)) => {
-                Self::Array(x.into_iter().map(|x| x.into()).collect())
-            }
+            sea_query::Value::Array(_, Some(x)) => Self::Array(x.into_iter().map(|x| x.into()).collect()),
             sea_query::Value::Vector(Some(x)) => Self::Vector((*x).into()),
             _ => unreachable!(),
         }

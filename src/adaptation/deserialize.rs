@@ -174,10 +174,7 @@ impl DeserializedValue {
         }
     }
 
-    pub fn serialize(
-        &self,
-        py: pyo3::Python<'_>,
-    ) -> pyo3::PyResult<super::serialize::SerializedValue> {
+    pub fn serialize(&self, py: pyo3::Python<'_>) -> pyo3::PyResult<super::serialize::SerializedValue> {
         use pyo3::types::PyAnyMethods;
 
         unsafe {
@@ -195,14 +192,12 @@ impl DeserializedValue {
                         Err(pyo3::PyErr::fetch(py))
                     } else {
                         let val = std::ffi::CStr::from_ptr(c_str);
-                        Ok(super::serialize::SerializedValue::String(
-                            val.to_bytes().to_vec(),
-                        ))
+                        Ok(super::serialize::SerializedValue::String(val.to_bytes().to_vec()))
                     }
                 }
                 Self::Bytes(op) => {
-                    let bytes = pyo3::Py::<pyo3::PyAny>::from_borrowed_ptr(py, op.as_ptr())
-                        .extract::<Vec<u8>>(py)?;
+                    let bytes =
+                        pyo3::Py::<pyo3::PyAny>::from_borrowed_ptr(py, op.as_ptr()).extract::<Vec<u8>>(py)?;
 
                     Ok(super::serialize::SerializedValue::Bytes(bytes))
                 }
@@ -232,44 +227,33 @@ impl DeserializedValue {
                     let val: pyo3::Bound<'_, pyo3::types::PyDate> =
                         pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).cast_into()?;
 
-                    Ok(super::serialize::SerializedValue::ChronoDate(
-                        val.extract()?,
-                    ))
+                    Ok(super::serialize::SerializedValue::ChronoDate(val.extract()?))
                 }
                 Self::ChronoTime(op) => {
                     let val: pyo3::Bound<'_, pyo3::types::PyTime> =
                         pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).cast_into()?;
 
-                    Ok(super::serialize::SerializedValue::ChronoTime(
-                        val.extract()?,
-                    ))
+                    Ok(super::serialize::SerializedValue::ChronoTime(val.extract()?))
                 }
                 Self::ChronoDateTime(op) => {
                     let val: pyo3::Bound<'_, pyo3::types::PyDateTime> =
                         pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).cast_into()?;
 
-                    let tzinfo = pyo3::ffi::PyObject_GetAttr(
-                        val.as_ptr(),
-                        pyo3::intern!(py, "tzinfo").as_ptr(),
-                    );
+                    let tzinfo =
+                        pyo3::ffi::PyObject_GetAttr(val.as_ptr(), pyo3::intern!(py, "tzinfo").as_ptr());
 
                     debug_assert!(!tzinfo.is_null());
 
                     if pyo3::ffi::Py_IsNone(tzinfo) == 1 {
-                        Ok(super::serialize::SerializedValue::ChronoDateTime(
+                        Ok(super::serialize::SerializedValue::ChronoDateTime(val.extract()?))
+                    } else {
+                        Ok(super::serialize::SerializedValue::ChronoDateTimeWithTimeZone(
                             val.extract()?,
                         ))
-                    } else {
-                        Ok(
-                            super::serialize::SerializedValue::ChronoDateTimeWithTimeZone(
-                                val.extract()?,
-                            ),
-                        )
                     }
                 }
                 Self::Uuid(op) => {
-                    let val: uuid::Uuid =
-                        pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).extract()?;
+                    let val: uuid::Uuid = pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).extract()?;
 
                     Ok(super::serialize::SerializedValue::Uuid(val))
                 }
@@ -280,8 +264,7 @@ impl DeserializedValue {
                     Ok(super::serialize::SerializedValue::Decimal(val))
                 }
                 Self::Array(op) => {
-                    let mut values: Vec<super::serialize::SerializedValue> =
-                        Vec::with_capacity(op.len());
+                    let mut values: Vec<super::serialize::SerializedValue> = Vec::with_capacity(op.len());
 
                     for item in op {
                         let item = item.serialize(py)?;

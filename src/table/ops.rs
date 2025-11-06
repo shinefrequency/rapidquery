@@ -202,8 +202,14 @@ impl RenameTableInner {
     fn as_statement(&self, py: pyo3::Python<'_>) -> sea_query::TableRenameStatement {
         let mut stmt = sea_query::TableRenameStatement::new();
 
-        let from = unsafe { self.from_name.cast_bound_unchecked::<crate::common::PyTableName>(py) };
-        let to = unsafe { self.to_name.cast_bound_unchecked::<crate::common::PyTableName>(py) };
+        let from = unsafe {
+            self.from_name
+                .cast_bound_unchecked::<crate::common::PyTableName>(py)
+        };
+        let to = unsafe {
+            self.to_name
+                .cast_bound_unchecked::<crate::common::PyTableName>(py)
+        };
 
         stmt.table(from.get().clone(), to.get().clone());
         stmt
@@ -411,7 +417,11 @@ impl PyAlterTableAddColumnOption {
     ) -> pyo3::PyResult<(Self, PyAlterTableOptionMeta)> {
         unsafe {
             if std::hint::unlikely(pyo3::ffi::Py_TYPE(column.as_ptr()) != crate::typeref::COLUMN_TYPE) {
-                return Err(typeerror!("expected Column, got {:?}", column.py(), column.as_ptr()));
+                return Err(typeerror!(
+                    "expected Column, got {:?}",
+                    column.py(),
+                    column.as_ptr()
+                ));
             }
         }
 
@@ -467,7 +477,11 @@ impl PyAlterTableModifyColumnOption {
     fn new(column: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<(Self, PyAlterTableOptionMeta)> {
         unsafe {
             if std::hint::unlikely(pyo3::ffi::Py_TYPE(column.as_ptr()) != crate::typeref::COLUMN_TYPE) {
-                return Err(typeerror!("expected Column, got {:?}", column.py(), column.as_ptr()));
+                return Err(typeerror!(
+                    "expected Column, got {:?}",
+                    column.py(),
+                    column.as_ptr()
+                ));
             }
         }
 
@@ -731,7 +745,7 @@ impl PyAlterTable {
                 ));
             }
         }
-        
+
         let slf = Self {
             inner: parking_lot::Mutex::new(AlterTableInner { name, options }),
         };
@@ -753,7 +767,12 @@ impl PyAlterTable {
 
     #[getter]
     fn options(&self, py: pyo3::Python) -> Vec<pyo3::Py<pyo3::PyAny>> {
-        self.inner.lock().options.iter().map(|x| x.clone_ref(py)).collect()
+        self.inner
+            .lock()
+            .options
+            .iter()
+            .map(|x| x.clone_ref(py))
+            .collect()
     }
 
     #[setter]

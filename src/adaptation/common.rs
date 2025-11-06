@@ -2,9 +2,7 @@ use pyo3::types::PyAnyMethods;
 
 /// Import json module only once
 #[inline]
-pub fn import_json_module(
-    py: pyo3::Python<'_>,
-) -> pyo3::PyResult<&pyo3::Bound<'_, pyo3::types::PyModule>> {
+pub fn import_json_module(py: pyo3::Python<'_>) -> pyo3::PyResult<&pyo3::Bound<'_, pyo3::types::PyModule>> {
     static JSON_CLS: once_cell::sync::OnceCell<pyo3::Py<pyo3::types::PyModule>> =
         once_cell::sync::OnceCell::new();
 
@@ -46,10 +44,7 @@ pub fn _deserialize_object_with_pyjson(
 
 /// Try to serialize pyobject to validate pyobject is JSON-serializable
 #[inline]
-pub fn _validate_json_object(
-    py: pyo3::Python<'_>,
-    ptr: *mut pyo3::ffi::PyObject,
-) -> pyo3::PyResult<()> {
+pub fn _validate_json_object(py: pyo3::Python<'_>, ptr: *mut pyo3::ffi::PyObject) -> pyo3::PyResult<()> {
     unsafe {
         // Fast path
         if (pyo3::ffi::PyLong_CheckExact(ptr) == 1)

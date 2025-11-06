@@ -10,29 +10,23 @@ pub struct PyOrder {
 impl PyOrder {
     #[new]
     #[pyo3(signature=(target, order, null_order=None))]
-    fn new(
-        target: pyo3::Bound<'_, pyo3::PyAny>,
-        order: u8,
-        null_order: Option<u8>,
-    ) -> pyo3::PyResult<Self> {
+    fn new(target: pyo3::Bound<'_, pyo3::PyAny>, order: u8, null_order: Option<u8>) -> pyo3::PyResult<Self> {
         let order = match order {
             0 => sea_query::Order::Asc,
             1 => sea_query::Order::Desc,
             _ => {
-                return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                    format!("invalid order value, use ORDER_ASC/ORDER_DESC. got {order}"),
-                ));
+                return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                    "invalid order value, use ORDER_ASC/ORDER_DESC. got {order}"
+                )));
             }
         };
 
         let null_order = unsafe {
             if let Some(n) = null_order {
                 if n > 1 {
-                    return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                        format!(
-                            "invalid order value, use NULL_ORDER_FIRST/NULL_ORDER_LAST. got {n}"
-                        ),
-                    ));
+                    return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "invalid order value, use NULL_ORDER_FIRST/NULL_ORDER_LAST. got {n}"
+                    )));
                 }
 
                 Some(std::mem::transmute::<u8, sea_query::NullOrdering>(n))

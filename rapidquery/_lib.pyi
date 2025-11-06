@@ -15,7 +15,6 @@ class _AsteriskType:
 
 ASTERISK: typing.Final[_AsteriskType]
 
-
 class SchemaStatement:
     def to_sql(self, backend: _Backends) -> str:
         """
@@ -29,7 +28,6 @@ class SchemaStatement:
         """
         ...
 
-
 class QueryStatement:
     def build(self, backend: _Backends) -> typing.Tuple[str, typing.Tuple[AdaptedValue, ...]]:
         """
@@ -42,7 +40,7 @@ class QueryStatement:
             A tuple of (SQL string, parameter values)
         """
         ...
-    
+
     def to_sql(self, backend: _Backends) -> str:
         """
         Build a SQL string representation.
@@ -56,7 +54,6 @@ class QueryStatement:
             A SQL string representation of the expression
         """
         ...
-
 
 T = typing.TypeVar("T")
 
@@ -1815,17 +1812,10 @@ class TableName:
         name: str,
         schema: typing.Optional[str] = ...,
         database: typing.Optional[str] = ...,
+        alias: typing.Optional[str] = ...,
     ) -> Self:
         """
         Create a new TableName instance.
-
-        Args:
-            name: The table name
-            schema: The schema containing the table
-            database: The database containing the table
-
-        Returns:
-            A new TableName instance
         """
         ...
 
@@ -1835,6 +1825,9 @@ class TableName:
     def schema(self) -> typing.Optional[str]: ...
     @property
     def database(self) -> typing.Optional[str]: ...
+    @property
+    def alias(self) -> typing.Optional[str]: ...
+    def with_alias(self, alias: typing.Optional[str]) -> Self: ...
     @classmethod
     def parse(cls, string: str) -> Self:
         """
@@ -2069,8 +2062,6 @@ class IndexColumn:
         Return a string representation of the IndexColumn.
         """
         ...
-
-
 
 _IndexType = typing.Literal["BTREE", "FULL TEXT", "HASH"]
 
@@ -3260,4 +3251,12 @@ class Update(QueryStatement):
         """
         ...
 
+    def __repr__(self) -> str: ...
+
+class SelectAlias:
+    def __new__(cls, expr: _ExprValue, alias: typing.Optional[str] = ...): ...
+    @property
+    def expr(self) -> Expr: ...
+    @property
+    def alias(self) -> typing.Optional[str]: ...
     def __repr__(self) -> str: ...

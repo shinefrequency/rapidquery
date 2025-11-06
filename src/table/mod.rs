@@ -1,15 +1,14 @@
 mod ops;
 
 pub use ops::{
-    PyAlterTable, PyAlterTableAddColumnOption, PyAlterTableAddForeignKeyOption,
-    PyAlterTableDropColumnOption, PyAlterTableDropForeignKeyOption, PyAlterTableModifyColumnOption,
-    PyAlterTableOptionMeta, PyAlterTableRenameColumnOption, PyDropTable, PyRenameTable,
-    PyTruncateTable,
+    PyAlterTable, PyAlterTableAddColumnOption, PyAlterTableAddForeignKeyOption, PyAlterTableDropColumnOption,
+    PyAlterTableDropForeignKeyOption, PyAlterTableModifyColumnOption, PyAlterTableOptionMeta,
+    PyAlterTableRenameColumnOption, PyDropTable, PyRenameTable, PyTruncateTable,
 };
 
+use crate::backend::PySchemaStatement;
 use pyo3::types::PyAnyMethods;
 use std::collections::HashMap;
-use crate::backend::PySchemaStatement;
 
 type ColumnsMap = HashMap<String, pyo3::Py<pyo3::PyAny>>;
 
@@ -43,9 +42,7 @@ impl TableInner {
         let mut stmt = sea_query::TableCreateStatement::new();
 
         stmt.table(unsafe {
-            let x = self
-                .name
-                .cast_bound_unchecked::<crate::common::PyTableName>(py);
+            let x = self.name.cast_bound_unchecked::<crate::common::PyTableName>(py);
             x.get().clone()
         });
 
@@ -67,8 +64,7 @@ impl TableInner {
         }
 
         for fk in self.foreign_keys.iter() {
-            let fkbound =
-                unsafe { fk.cast_bound_unchecked::<crate::foreign_key::PyForeignKey>(py) };
+            let fkbound = unsafe { fk.cast_bound_unchecked::<crate::foreign_key::PyForeignKey>(py) };
 
             let fklock = fkbound.get().inner.lock();
             stmt.foreign_key(&mut fklock.as_statement(py));
@@ -108,10 +104,7 @@ impl TableInner {
     }
 
     #[optimize(speed)]
-    pub fn as_index_create_statements(
-        &self,
-        py: pyo3::Python,
-    ) -> Vec<sea_query::IndexCreateStatement> {
+    pub fn as_index_create_statements(&self, py: pyo3::Python) -> Vec<sea_query::IndexCreateStatement> {
         let mut vec = Vec::with_capacity(self.indexes.len());
 
         for ix in self.indexes.iter() {
@@ -175,9 +168,7 @@ impl PyTable {
         let mut cols = ColumnsMap::with_capacity(columns.len());
         for col in columns {
             unsafe {
-                if std::hint::unlikely(
-                    pyo3::ffi::Py_TYPE(col.as_ptr()) != crate::typeref::COLUMN_TYPE,
-                ) {
+                if std::hint::unlikely(pyo3::ffi::Py_TYPE(col.as_ptr()) != crate::typeref::COLUMN_TYPE) {
                     return Err(typeerror!("expected Column, got {:?}", py, col.as_ptr()));
                 }
 
@@ -211,15 +202,8 @@ impl PyTable {
 
         let mut foreign_keys_vec = Vec::with_capacity(foreign_keys.capacity());
         for fk in foreign_keys {
-            if std::hint::unlikely(
-                !fk.bind(py)
-                    .is_instance_of::<crate::foreign_key::PyForeignKey>(),
-            ) {
-                return Err(typeerror!(
-                    "expected ForeignKeySpec, got {:?}",
-                    py,
-                    fk.as_ptr()
-                ));
+            if std::hint::unlikely(!fk.bind(py).is_instance_of::<crate::foreign_key::PyForeignKey>()) {
+                return Err(typeerror!("expected ForeignKeySpec, got {:?}", py, fk.as_ptr()));
             }
 
             foreign_keys_vec.push(fk);
@@ -274,9 +258,7 @@ impl PyTable {
         let mut cols = ColumnsMap::with_capacity(val.len());
         for col in val {
             unsafe {
-                if std::hint::unlikely(
-                    pyo3::ffi::Py_TYPE(col.as_ptr()) != crate::typeref::COLUMN_TYPE,
-                ) {
+                if std::hint::unlikely(pyo3::ffi::Py_TYPE(col.as_ptr()) != crate::typeref::COLUMN_TYPE) {
                     return Err(typeerror!("expected Column, got {:?}", py, col.as_ptr()));
                 }
 
@@ -338,22 +320,11 @@ impl PyTable {
     }
 
     #[setter]
-    fn set_foreign_keys(
-        &self,
-        py: pyo3::Python,
-        val: Vec<pyo3::Py<pyo3::PyAny>>,
-    ) -> pyo3::PyResult<()> {
+    fn set_foreign_keys(&self, py: pyo3::Python, val: Vec<pyo3::Py<pyo3::PyAny>>) -> pyo3::PyResult<()> {
         let mut foreign_keys_vec = Vec::with_capacity(val.capacity());
         for fk in val {
-            if std::hint::unlikely(
-                !fk.bind(py)
-                    .is_instance_of::<crate::foreign_key::PyForeignKey>(),
-            ) {
-                return Err(typeerror!(
-                    "expected ForeignKeySpec, got {:?}",
-                    py,
-                    fk.as_ptr()
-                ));
+            if std::hint::unlikely(!fk.bind(py).is_instance_of::<crate::foreign_key::PyForeignKey>()) {
+                return Err(typeerror!("expected ForeignKeySpec, got {:?}", py, fk.as_ptr()));
             }
 
             foreign_keys_vec.push(fk);

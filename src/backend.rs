@@ -1,7 +1,19 @@
-#[pyo3::pyclass(module = "rapidquery._lib", name = "SchemaStatement", frozen, immutable_type, subclass)]
+#[pyo3::pyclass(
+    module = "rapidquery._lib",
+    name = "SchemaStatement",
+    frozen,
+    immutable_type,
+    subclass
+)]
 pub struct PySchemaStatement;
 
-#[pyo3::pyclass(module = "rapidquery._lib", name = "QueryStatement", frozen, immutable_type, subclass)]
+#[pyo3::pyclass(
+    module = "rapidquery._lib",
+    name = "QueryStatement",
+    frozen,
+    immutable_type,
+    subclass
+)]
 pub struct PyQueryStatement;
 
 #[inline]
@@ -11,11 +23,7 @@ pub(crate) fn into_query_builder(
 ) -> pyo3::PyResult<Box<dyn sea_query::QueryBuilder>> {
     let val = unsafe {
         if pyo3::ffi::PyUnicode_CheckExact(object.as_ptr()) == 0 {
-            return Err(typeerror!(
-                "expected str, got {:?}",
-                object.py(),
-                object.as_ptr()
-            ));
+            return Err(typeerror!("expected str, got {:?}", object.py(), object.as_ptr()));
         }
 
         let mut size: pyo3::ffi::Py_ssize_t = 0;
@@ -35,9 +43,9 @@ pub(crate) fn into_query_builder(
     } else if val == "postgresql" || val == "postgres" {
         Ok(Box::new(sea_query::PostgresQueryBuilder))
     } else {
-        Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            format!("invalid backend value, got {val}"),
-        ))
+        Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "invalid backend value, got {val}"
+        )))
     }
 }
 
@@ -48,11 +56,7 @@ pub(crate) fn into_schema_builder(
 ) -> pyo3::PyResult<Box<dyn sea_query::SchemaBuilder>> {
     let val = unsafe {
         if pyo3::ffi::PyUnicode_CheckExact(object.as_ptr()) == 0 {
-            return Err(typeerror!(
-                "expected str, got {:?}",
-                object.py(),
-                object.as_ptr()
-            ));
+            return Err(typeerror!("expected str, got {:?}", object.py(), object.as_ptr()));
         }
 
         let mut size: pyo3::ffi::Py_ssize_t = 0;
@@ -72,8 +76,8 @@ pub(crate) fn into_schema_builder(
     } else if val == "postgresql" || val == "postgres" {
         Ok(Box::new(sea_query::PostgresQueryBuilder))
     } else {
-        Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-            format!("invalid backend value, got {val}"),
-        ))
+        Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+            "invalid backend value, got {val}"
+        )))
     }
 }
