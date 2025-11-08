@@ -215,7 +215,7 @@ impl ColumnInner {
 /// - Auto-increment behavior
 /// - Default values and generated columns
 /// - Comments and extra specifications
-#[pyo3::pyclass(module = "rapidquery._lib", name = "Column", frozen, generic)]
+#[pyo3::pyclass(module = "rapidquery._lib", name = "Column", frozen, generic, subclass)]
 pub struct PyColumn {
     pub(crate) inner: parking_lot::Mutex<ColumnInner>,
 }

@@ -31,7 +31,6 @@ mod typeref;
 #[pyo3::pymodule(gil_used = false)]
 mod _lib {
     use pyo3::types::PyModuleMethods;
-    use sea_query::extension::postgres::PostgresSelectStatementExt;
 
     #[pymodule_export]
     use super::backend::{PyQueryStatement, PySchemaStatement};
@@ -83,6 +82,9 @@ mod _lib {
 
     #[pymodule_export]
     use super::query::update::PyUpdate;
+
+    #[pymodule_export]
+    use super::query::select::{PySelect, PySelectExpr};
 
     #[pymodule_export]
     use super::query::on_conflict::PyOnConflict;

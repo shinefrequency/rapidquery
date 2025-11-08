@@ -1331,7 +1331,7 @@ class FunctionCall:
         """
         ...
 
-    def arg(self, arg: Expr) -> Self:
+    def arg(self, arg: _ExprValue) -> Self:
         """
         Add an argument to the function call.
 
@@ -1355,7 +1355,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def min(cls, expr: Expr) -> Self:
+    def min(cls, expr: _ExprValue) -> Self:
         """
         Create a MIN aggregate function call.
 
@@ -1368,7 +1368,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def max(cls, expr: Expr) -> Self:
+    def max(cls, expr: _ExprValue) -> Self:
         """
         Create a MAX aggregate function call.
 
@@ -1381,7 +1381,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def abs(cls, expr: Expr) -> Self:
+    def abs(cls, expr: _ExprValue) -> Self:
         """
         Create an ABS absolute value function call.
 
@@ -1394,7 +1394,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def avg(cls, expr: Expr) -> Self:
+    def avg(cls, expr: _ExprValue) -> Self:
         """
         Create an AVG average function call.
 
@@ -1407,7 +1407,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def count(cls, expr: Expr) -> Self:
+    def count(cls, expr: _ExprValue) -> Self:
         """
         Create a COUNT aggregate function call.
 
@@ -1420,7 +1420,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def count_distinct(cls, expr: Expr) -> Self:
+    def count_distinct(cls, expr: _ExprValue) -> Self:
         """
         Create a COUNT(DISTINCT ...) aggregate function call.
 
@@ -1433,7 +1433,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def if_null(cls, expr: Expr) -> Self:
+    def if_null(cls, expr: _ExprValue) -> Self:
         """
         Create an IFNULL/COALESCE function call (database-dependent).
 
@@ -1446,7 +1446,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def greatest(cls, exprs: typing.Sequence[Expr]) -> Self:
+    def greatest(cls, *exprs: _ExprValue) -> Self:
         """
         Create a GREATEST function call returning the largest value.
 
@@ -1459,7 +1459,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def least(cls, exprs: typing.Sequence[Expr]) -> Self:
+    def least(cls, *exprs: _ExprValue) -> Self:
         """
         Create a LEAST function call returning the smallest value.
 
@@ -1472,7 +1472,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def char_length(cls, expr: Expr) -> Self:
+    def char_length(cls, expr: _ExprValue) -> Self:
         """
         Create a CHAR_LENGTH/LENGTH function call.
 
@@ -1485,7 +1485,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def coalesce(cls, exprs: typing.Sequence[Expr]) -> Self:
+    def coalesce(cls, *exprs: _ExprValue) -> Self:
         """
         Create a COALESCE function call returning first non-NULL value.
 
@@ -1498,7 +1498,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def lower(cls, expr: Expr) -> Self:
+    def lower(cls, expr: _ExprValue) -> Self:
         """
         Create a LOWER case conversion function call.
 
@@ -1511,7 +1511,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def upper(cls, expr: Expr) -> Self:
+    def upper(cls, expr: _ExprValue) -> Self:
         """
         Create an UPPER case conversion function call.
 
@@ -1524,7 +1524,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def bit_and(cls, expr: Expr) -> Self:
+    def bit_and(cls, expr: _ExprValue) -> Self:
         """
         Create a BIT_AND aggregate function call.
 
@@ -1537,7 +1537,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def bit_or(cls, expr: Expr) -> Self:
+    def bit_or(cls, expr: _ExprValue) -> Self:
         """
         Create a BIT_OR aggregate function call.
 
@@ -1560,7 +1560,7 @@ class FunctionCall:
         ...
 
     @classmethod
-    def round(cls, expr: Expr) -> Self:
+    def round(cls, expr: _ExprValue) -> Self:
         """
         Create a ROUND function call.
 
@@ -1573,7 +1573,21 @@ class FunctionCall:
         ...
 
     @classmethod
-    def md5(cls, expr: Expr) -> Self:
+    def round_with_precision(cls, a: _ExprValue, b: _ExprValue) -> Self:
+        """
+        Call ROUND function with the precision.
+
+        Args:
+            a: The numeric expression to round
+            b: The numeric expression to round
+
+        Returns:
+            A FunctionCall representing ROUND(a, b)
+        """
+        ...
+
+    @classmethod
+    def md5(cls, expr: _ExprValue) -> Self:
         """
         Create an MD5 hash function call.
 
@@ -3253,10 +3267,20 @@ class Update(QueryStatement):
 
     def __repr__(self) -> str: ...
 
-class SelectAlias:
+class SelectExpr:
     def __new__(cls, expr: _ExprValue, alias: typing.Optional[str] = ...): ...
     @property
     def expr(self) -> Expr: ...
     @property
     def alias(self) -> typing.Optional[str]: ...
     def __repr__(self) -> str: ...
+
+class Select(QueryStatement):
+    def __new__(cls, *cols: typing.Union[SelectExpr, _ExprValue]) -> Self: ...
+    def distinct(self, *on: typing.Union[Column, ColumnRef, str]) -> Self: ...
+    def columns(self, *cols: typing.Union[SelectExpr, _ExprValue]) -> Self: ...
+    def from_table(self, table: typing.Union[Table, TableName, str]) -> Self: ...
+    def limit(self, n: int) -> Self: ...
+    def offset(self, n: int) -> Self: ...
+    def where(self, condition: _ExprValue) -> Self: ...
+    def order_by(self, order: Order) -> Self: ...

@@ -70,7 +70,7 @@ from ._lib import SchemaStatement as SchemaStatement
 from ._lib import SmallIntegerType as SmallIntegerType
 from ._lib import SmallUnsignedType as SmallUnsignedType
 from ._lib import StringType as StringType
-from ._lib import SelectAlias as SelectAlias
+from ._lib import SelectExpr as SelectExpr
 from ._lib import Select as Select
 from ._lib import Table as Table
 from ._lib import TableName as TableName
