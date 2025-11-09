@@ -1,5 +1,6 @@
 use crate::backend::PyQueryStatement;
 use pyo3::types::{PyAnyMethods, PyTupleMethods};
+use pyo3::PyTypeInfo;
 use sea_query::IntoIden;
 
 #[pyo3::pyclass(module = "rapidquery._lib", name = "SelectExpr", frozen)]
@@ -110,6 +111,8 @@ pub enum SelectDistinct {
 pub struct SelectLock {
     pub r#type: sea_query::LockType,
     pub behavior: Option<sea_query::LockBehavior>,
+
+    // Always is `Vec<TableName>`
     pub tables: Vec<pyo3::Py<pyo3::PyAny>>,
 }
 
@@ -129,11 +132,13 @@ pub struct SelectInner {
 
     pub lock: Option<SelectLock>,
     pub groups: Vec<pyo3::Py<pyo3::PyAny>>,
+    pub unions: Vec<(sea_query::UnionType, pyo3::Py<pyo3::PyAny>)>,
+
+    // Always is `Option<PyExpr>`
+    pub having: Option<pyo3::Py<pyo3::PyAny>>,
 
     // TODO
     // pub join: Vec<pyo3::Py<pyo3::PyAny>>,
-    // pub having: Vec<pyo3::Py<pyo3::PyAny>>,
-    // pub unions: Vec<pyo3::Py<pyo3::PyAny>>,
     // pub window: Option<pyo3::Py<pyo3::PyAny>>,
     // pub with: Option<pyo3::Py<pyo3::PyAny>>,
     pub orders: Vec<pyo3::Py<pyo3::PyAny>>,
@@ -190,6 +195,11 @@ impl SelectInner {
             stmt.and_where(x.get().inner.clone());
         }
 
+        if let Some(x) = &self.having {
+            let x = unsafe { x.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
+            stmt.and_having(x.get().inner.clone());
+        }
+
         if let Some(n) = self.limit {
             stmt.limit(n);
         }
@@ -241,6 +251,13 @@ impl SelectInner {
                 }
             }
         }
+
+        stmt.unions(self.unions.iter().map(|(union_type, union_stmt)| {
+            let union_stmt = unsafe { union_stmt.cast_bound_unchecked::<PySelect>(py) };
+
+            let inner = union_stmt.get().inner.lock();
+            (*union_type, inner.as_statement(py))
+        }));
 
         stmt
     }
@@ -389,6 +406,20 @@ impl PySelect {
         Ok(slf)
     }
 
+    fn having<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        condition: pyo3::Bound<'a, pyo3::PyAny>,
+    ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
+        let condition = crate::expression::PyExpr::from_bound_into_any(condition)?;
+
+        {
+            let mut lock = slf.inner.lock();
+            lock.having = Some(condition);
+        }
+
+        Ok(slf)
+    }
+
     fn order_by<'a>(
         slf: pyo3::PyRef<'a, Self>,
         order: &'a pyo3::Bound<'a, pyo3::PyAny>,
@@ -486,6 +517,52 @@ impl PySelect {
         {
             let mut lock = slf.inner.lock();
             lock.groups = exprs;
+        }
+
+        Ok(slf)
+    }
+
+    #[pyo3(signature=(statement, r#type=String::from("all")))]
+    fn union<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        statement: &'a pyo3::Bound<'a, pyo3::PyAny>,
+        mut r#type: String,
+    ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
+        if std::hint::unlikely(slf.as_ptr() == statement.as_ptr()) {
+            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "A Select statement cannot union itself",
+            ));
+        }
+
+        if !PySelect::is_exact_type_of(statement) {
+            return Err(typeerror!(
+                "expected Select, got {:?}",
+                statement.py(),
+                statement.as_ptr()
+            ));
+        }
+
+        let r#type = {
+            r#type.make_ascii_lowercase();
+
+            if r#type == "all" {
+                sea_query::UnionType::All
+            } else if r#type == "intersect" {
+                sea_query::UnionType::Intersect
+            } else if r#type == "distinct" {
+                sea_query::UnionType::Distinct
+            } else if r#type == "except" {
+                sea_query::UnionType::Except
+            } else {
+                return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "acceptable union types are: 'all', 'distinct', 'except', and 'intersect'. got invalid type",
+                ));
+            }
+        };
+
+        {
+            let mut lock = slf.inner.lock();
+            lock.unions.push((r#type, statement.clone().unbind()));
         }
 
         Ok(slf)
