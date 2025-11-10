@@ -117,16 +117,31 @@ pub struct SelectJoin {
 
     // Always is `PyExpr`
     pub on: pyo3::Py<pyo3::PyAny>,
-
     // TODO
     // pub lateral: bool,
 }
 
+pub enum SelectTable {
+    SubQuery(
+        // Always is `PySelect`
+        pyo3::Py<pyo3::PyAny>,
+        String,
+    ),
+    FunctionCall(
+        // Always is `PyFunctionCall`
+        pyo3::Py<pyo3::PyAny>,
+        String,
+    ),
+    TableName(
+        // Always is `PyTableName`
+        pyo3::Py<pyo3::PyAny>,
+    ),
+}
+
 #[derive(Default)]
 pub struct SelectInner {
-    // TODO: support subquery and function
-    // Always is `Vec<TableName>`
-    pub tables: Vec<pyo3::Py<pyo3::PyAny>>,
+    // TODO: support from_values
+    pub tables: Vec<SelectTable>,
 
     // Always is `Option<SelectExpr>`
     pub cols: Vec<pyo3::Py<pyo3::PyAny>>,
@@ -182,8 +197,22 @@ impl SelectInner {
         }
 
         for table in self.tables.iter() {
-            let x = unsafe { table.cast_bound_unchecked::<crate::common::PyTableName>(py) };
-            stmt.from(x.get().clone());
+            match table {
+                SelectTable::TableName(x) => unsafe {
+                    let x = unsafe { x.cast_bound_unchecked::<crate::common::PyTableName>(py) };
+                    stmt.from(x.get().clone());
+                },
+                SelectTable::FunctionCall(x, alias) => unsafe {
+                    let x = unsafe { x.cast_bound_unchecked::<crate::expression::PyFunctionCall>(py) };
+                    stmt.from_function(x.get().inner.lock().clone(), sea_query::Alias::new(alias));
+                },
+                SelectTable::SubQuery(x, alias) => unsafe {
+                    let x = unsafe { x.cast_bound_unchecked::<PySelect>(py) };
+                    let inner = x.get().inner.lock();
+
+                    stmt.from_subquery(inner.as_statement(py), sea_query::Alias::new(alias));
+                },
+            }
         }
 
         if !self.cols.is_empty() {
@@ -386,7 +415,66 @@ impl PySelect {
 
         {
             let mut lock = slf.inner.lock();
-            lock.tables.push(table);
+            lock.tables.push(SelectTable::TableName(table));
+        }
+
+        Ok(slf)
+    }
+
+    #[allow(clippy::wrong_self_convention)]
+    fn from_subquery<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        subquery: &'a pyo3::Bound<'_, pyo3::PyAny>,
+        alias: String,
+    ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
+        if std::hint::unlikely(slf.as_ptr() == subquery.as_ptr()) {
+            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                "A Select statement cannot select from itself",
+            ));
+        }
+
+        let subquery = {
+            if std::hint::likely(PySelect::is_exact_type_of(subquery)) {
+                subquery.clone().unbind()
+            } else {
+                return Err(typeerror!(
+                    "expected Select, got {:?}",
+                    subquery.py(),
+                    subquery.as_ptr()
+                ));
+            }
+        };
+
+        {
+            let mut lock = slf.inner.lock();
+            lock.tables.push(SelectTable::SubQuery(subquery, alias));
+        }
+
+        Ok(slf)
+    }
+
+    #[allow(clippy::wrong_self_convention)]
+    fn from_function<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        function: &'a pyo3::Bound<'_, pyo3::PyAny>,
+        alias: String,
+    ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
+        let function = unsafe {
+            if std::hint::likely(pyo3::ffi::Py_TYPE(function.as_ptr()) == crate::typeref::FUNCTION_CALL_TYPE)
+            {
+                function.clone().unbind()
+            } else {
+                return Err(typeerror!(
+                    "expected FunctionCall, got {:?}",
+                    function.py(),
+                    function.as_ptr()
+                ));
+            }
+        };
+
+        {
+            let mut lock = slf.inner.lock();
+            lock.tables.push(SelectTable::FunctionCall(function, alias));
         }
 
         Ok(slf)
@@ -619,7 +707,11 @@ impl PySelect {
         let table = crate::common::PyTableName::from_pyobject(table)?;
         let expr = crate::expression::PyExpr::from_bound_into_any(on.clone())?;
 
-        let join_expr = SelectJoin {r#type, table, on: expr};
+        let join_expr = SelectJoin {
+            r#type,
+            table,
+            on: expr,
+        };
 
         {
             let mut lock = slf.inner.lock();
