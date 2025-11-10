@@ -746,6 +746,7 @@ _ExprValue = typing.Union[
     Expr,
     AdaptedValue,
     ColumnRef,
+    Column,
     tuple,
     _AsteriskType,
     typing.Any,
@@ -1270,7 +1271,7 @@ class Expr:
         """
         ...
 
-    def in_(self, other: typing.Sequence[Self]) -> Self:
+    def in_(self, other: typing.Sequence[_ExprValue]) -> Self:
         """
         Create an IN membership expression.
 
@@ -1282,7 +1283,7 @@ class Expr:
         """
         ...
 
-    def not_in(self, other: typing.Sequence[Self]) -> Self:
+    def not_in(self, other: typing.Sequence[_ExprValue]) -> Self:
         """
         Create a NOT IN membership expression.
 
@@ -3299,4 +3300,11 @@ class Select(QueryStatement):
         self,
         statement: Self,
         type: typing.Literal["all", "except", "intersect", "distinct"] = ...,
+    ) -> Self: ...
+    def join(
+        self,
+        table: typing.Union[str, TableName, Table],
+        on: _ExprValue,
+        type: typing.Literal["", "cross", "full", "inner", "right", "left"] = ...,
+        lateral: bool = ...
     ) -> Self: ...

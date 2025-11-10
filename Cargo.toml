@@ -1,6 +1,6 @@
 [package]
 name = "rapidquery"
-version = "0.1.0"
+version = "0.1.0-alpha1"
 edition = "2021"
 description = "Blazingly fast SQL builder for Python written in Rust"
 readme = "README.md"

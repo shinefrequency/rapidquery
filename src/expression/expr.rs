@@ -552,32 +552,36 @@ impl PyExpr {
         Ok(sea_query::ExprTrait::not_between(slf.inner.clone(), a.inner, b.inner).into())
     }
 
-    fn in_(slf: pyo3::PyRef<'_, Self>, other: Vec<pyo3::Py<Self>>) -> pyo3::PyResult<Self> {
+    fn in_(slf: pyo3::PyRef<'_, Self>, other: Vec<pyo3::Py<pyo3::PyAny>>) -> pyo3::PyResult<Self> {
         if other.is_empty() {
             return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
                 "`other` parameter cannot be an empty sequence",
             ));
         }
 
-        Ok(sea_query::ExprTrait::is_in(
-            slf.inner.clone(),
-            other.into_iter().map(|x| x.get().inner.clone()),
-        )
-        .into())
+        let mut exprs = Vec::with_capacity(other.len());
+        for exp in other.into_iter() {
+            let exp = Self::try_from(exp.into_bound(slf.py()))?;
+            exprs.push(exp.inner);
+        }
+
+        Ok(sea_query::ExprTrait::is_in(slf.inner.clone(), exprs).into())
     }
 
-    fn not_in(slf: pyo3::PyRef<'_, Self>, other: Vec<pyo3::Py<Self>>) -> pyo3::PyResult<Self> {
+    fn not_in(slf: pyo3::PyRef<'_, Self>, other: Vec<pyo3::Py<pyo3::PyAny>>) -> pyo3::PyResult<Self> {
         if other.is_empty() {
             return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
                 "`other` parameter cannot be an empty sequence",
             ));
         }
 
-        Ok(sea_query::ExprTrait::is_not_in(
-            slf.inner.clone(),
-            other.into_iter().map(|x| x.get().inner.clone()),
-        )
-        .into())
+        let mut exprs = Vec::with_capacity(other.len());
+        for exp in other.into_iter() {
+            let exp = Self::try_from(exp.into_bound(slf.py()))?;
+            exprs.push(exp.inner);
+        }
+
+        Ok(sea_query::ExprTrait::is_not_in(slf.inner.clone(), exprs).into())
     }
 
     fn to_sql(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {

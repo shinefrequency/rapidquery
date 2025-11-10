@@ -14,13 +14,6 @@ pub struct PySelectExpr {
     // pub window: pyo3::Py<pyo3::PyAny>,
 }
 
-// impl From<PySelectExpr> for sea_query::SelectExpr {
-//     fn from(value: PySelectExpr) -> Self {
-//         let expr = value.expr
-//         sea_query::SelectExpr { expr: value.expr }
-//     }
-// }
-
 impl PySelectExpr {
     pub fn clone_ref(&self, py: pyo3::Python) -> Self {
         Self {
@@ -116,11 +109,22 @@ pub struct SelectLock {
     pub tables: Vec<pyo3::Py<pyo3::PyAny>>,
 }
 
+pub struct SelectJoin {
+    pub r#type: sea_query::JoinType,
+
+    // Always is `TableName`
+    pub table: pyo3::Py<pyo3::PyAny>,
+
+    // Always is `PyExpr`
+    pub on: pyo3::Py<pyo3::PyAny>,
+
+    // TODO
+    // pub lateral: bool,
+}
+
 #[derive(Default)]
 pub struct SelectInner {
-    pub distinct: SelectDistinct,
-
-    // TODO: support subquery
+    // TODO: support subquery and function
     // Always is `Vec<TableName>`
     pub tables: Vec<pyo3::Py<pyo3::PyAny>>,
 
@@ -130,20 +134,26 @@ pub struct SelectInner {
     // Always is `Option<PyExpr>`
     pub r#where: Option<pyo3::Py<pyo3::PyAny>>,
 
-    pub lock: Option<SelectLock>,
+    // Always is `Vec<PyExpr>`
     pub groups: Vec<pyo3::Py<pyo3::PyAny>>,
+
+    // Always is `Vec<_, PySelect>`
     pub unions: Vec<(sea_query::UnionType, pyo3::Py<pyo3::PyAny>)>,
 
     // Always is `Option<PyExpr>`
     pub having: Option<pyo3::Py<pyo3::PyAny>>,
 
-    // TODO
-    // pub join: Vec<pyo3::Py<pyo3::PyAny>>,
-    // pub window: Option<pyo3::Py<pyo3::PyAny>>,
-    // pub with: Option<pyo3::Py<pyo3::PyAny>>,
+    // Always is `Vec<PyOrder>`
     pub orders: Vec<pyo3::Py<pyo3::PyAny>>,
+
+    pub distinct: SelectDistinct,
+    pub join: Vec<SelectJoin>,
+    pub lock: Option<SelectLock>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
+    // TODO
+    // pub window: Option<pyo3::Py<pyo3::PyAny>>,
+    // pub with: Option<pyo3::Py<pyo3::PyAny>>,
 }
 
 impl SelectInner {
@@ -258,6 +268,14 @@ impl SelectInner {
             let inner = union_stmt.get().inner.lock();
             (*union_type, inner.as_statement(py))
         }));
+
+        for join in self.join.iter() {
+            let table = unsafe { join.table.cast_bound_unchecked::<crate::common::PyTableName>(py) };
+            let condition = unsafe { join.on.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
+            let condition = condition.get().inner.clone();
+
+            stmt.join(join.r#type, table.get().clone(), condition);
+        }
 
         stmt
     }
@@ -522,7 +540,7 @@ impl PySelect {
         Ok(slf)
     }
 
-    #[pyo3(signature=(statement, r#type=String::from("all")))]
+    #[pyo3(signature=(statement, r#type=String::from("distinct")))]
     fn union<'a>(
         slf: pyo3::PyRef<'a, Self>,
         statement: &'a pyo3::Bound<'a, pyo3::PyAny>,
@@ -563,6 +581,49 @@ impl PySelect {
         {
             let mut lock = slf.inner.lock();
             lock.unions.push((r#type, statement.clone().unbind()));
+        }
+
+        Ok(slf)
+    }
+
+    #[pyo3(signature=(table, on, r#type=String::new()))]
+    fn join<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        table: &'a pyo3::Bound<'a, pyo3::PyAny>,
+        on: &'a pyo3::Bound<'a, pyo3::PyAny>,
+        mut r#type: String,
+        // lateral: bool,
+    ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
+        let r#type = {
+            r#type.make_ascii_lowercase();
+
+            if r#type.is_empty() {
+                sea_query::JoinType::Join
+            } else if r#type == "cross" {
+                sea_query::JoinType::CrossJoin
+            } else if r#type == "full" {
+                sea_query::JoinType::FullOuterJoin
+            } else if r#type == "inner" {
+                sea_query::JoinType::InnerJoin
+            } else if r#type == "left" {
+                sea_query::JoinType::LeftJoin
+            } else if r#type == "right" {
+                sea_query::JoinType::RightJoin
+            } else {
+                return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
+                    "acceptable join types are: '', 'cross', 'full', 'left', 'right', and 'inner'. got invalid type",
+                ));
+            }
+        };
+
+        let table = crate::common::PyTableName::from_pyobject(table)?;
+        let expr = crate::expression::PyExpr::from_bound_into_any(on.clone())?;
+
+        let join_expr = SelectJoin {r#type, table, on: expr};
+
+        {
+            let mut lock = slf.inner.lock();
+            lock.join.push(join_expr);
         }
 
         Ok(slf)
