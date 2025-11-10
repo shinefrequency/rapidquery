@@ -2,7 +2,7 @@
 name = "rapidquery"
 version = "0.1.0-alpha1"
 edition = "2021"
-description = "Blazingly fast SQL builder for Python written in Rust"
+description = "RapiQuery is the fastest, full-feature, and easy-to-use Python SQL query builder written in Rust."
 readme = "README.md"
 license = "GNU GPLv3"
 homepage = "https://github.com/awolverp/rapidquery"

@@ -1,8 +1,10 @@
 name: Test
 
 on:
-  push:
   pull_request:
+    types: [opened, reopened]
+
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,7 +16,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.9"
           - "3.10"
           - "3.11"
           - "3.12"
