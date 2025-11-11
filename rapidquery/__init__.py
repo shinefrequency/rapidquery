@@ -1,5 +1,6 @@
 from ._lib import ASTERISK as ASTERISK
 from ._lib import AdaptedValue as AdaptedValue
+from ._lib import AliasedTable as AliasedTable
 from ._lib import AlterTable as AlterTable
 from ._lib import AlterTableAddColumnOption as AlterTableAddColumnOption
 from ._lib import AlterTableAddForeignKeyOption as AlterTableAddForeignKeyOption
@@ -67,11 +68,11 @@ from ._lib import Order as Order
 from ._lib import QueryStatement as QueryStatement
 from ._lib import RenameTable as RenameTable
 from ._lib import SchemaStatement as SchemaStatement
+from ._lib import Select as Select
+from ._lib import SelectExpr as SelectExpr
 from ._lib import SmallIntegerType as SmallIntegerType
 from ._lib import SmallUnsignedType as SmallUnsignedType
 from ._lib import StringType as StringType
-from ._lib import SelectExpr as SelectExpr
-from ._lib import Select as Select
 from ._lib import Table as Table
 from ._lib import TableName as TableName
 from ._lib import TextType as TextType
@@ -88,7 +89,9 @@ from ._lib import VarBinaryType as VarBinaryType
 from ._lib import VarBitType as VarBitType
 from ._lib import VectorType as VectorType
 from ._lib import YearType as YearType
+from ._lib import _AliasedTableColumnsSequence as _AliasedTableColumnsSequence
 from ._lib import _AsteriskType as _AsteriskType
+from ._lib import _TableColumnsSequence as _TableColumnsSequence
 from ._lib import all as all
 from ._lib import any as any
 from ._lib import not_ as not_

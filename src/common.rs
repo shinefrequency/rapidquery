@@ -233,7 +233,7 @@ impl PyColumnRef {
 
         let mut s = Vec::new();
 
-        write!(s, "<ColumnRef {:?}", self.col).unwrap();
+        write!(s, "<ColumnRef {}", self.col.to_string()).unwrap();
         if let Some(x) = &self.table {
             write!(s, " table={:?}", x.to_string()).unwrap();
         }
@@ -507,6 +507,9 @@ impl PyTableName {
         }
         if let Some(x) = &self.database {
             write!(s, " database={:?}", x.to_string()).unwrap();
+        }
+        if let Some(x) = &self.alias {
+            write!(s, " alias={:?}", x.to_string()).unwrap();
         }
         write!(s, ">").unwrap();
 

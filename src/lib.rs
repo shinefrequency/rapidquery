@@ -68,10 +68,10 @@ mod _lib {
 
     #[pymodule_export]
     use super::table::{
-        PyAlterTable, PyAlterTableAddColumnOption, PyAlterTableAddForeignKeyOption,
+        PyAliasedTable, PyAlterTable, PyAlterTableAddColumnOption, PyAlterTableAddForeignKeyOption,
         PyAlterTableDropColumnOption, PyAlterTableDropForeignKeyOption, PyAlterTableModifyColumnOption,
         PyAlterTableOptionMeta, PyAlterTableRenameColumnOption, PyDropTable, PyRenameTable, PyTable,
-        PyTruncateTable, Py_TableColumnsSequence,
+        PyTruncateTable, Py_AliasedTableColumnsSequence, Py_TableColumnsSequence,
     };
 
     #[pymodule_export]

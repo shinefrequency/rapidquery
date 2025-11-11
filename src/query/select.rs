@@ -410,6 +410,8 @@ impl PySelect {
             if let Ok(x) = table.cast_exact::<crate::table::PyTable>() {
                 let guard = x.get().inner.lock();
                 guard.name.clone_ref(slf.py())
+            } else if let Ok(x) = table.cast_exact::<crate::table::PyAliasedTable>() {
+                x.get().name(slf.py())?
             } else {
                 crate::common::PyTableName::from_pyobject(table)?
             }

@@ -1905,7 +1905,6 @@ class TableName:
         database: typing.Optional[str] = ...,
         alias: typing.Optional[str] = ...,
     ) -> Self: ...
-
     def __copy__(self) -> Self:
         """
         Create a shallow copy of this TableName.
@@ -2409,14 +2408,30 @@ class Table(SchemaStatement):
         """
         ...
 
-    def __repr__(self) -> str:
-        """
-        Return a developer-friendly string representation.
+    def __repr__(self) -> str: ...
 
-        Returns:
-            A string showing the table definition
-        """
+class _AliasedTableColumnsSequence:
+    def __getattr__(self, name: str) -> ColumnRef: ...
+    def get(self, name: str) -> ColumnRef: ...
+
+class AliasedTable:
+    def __new__(cls, table: typing.Union[Table, Self], alias: str) -> Self: ...
+    @property
+    def name(self) -> TableName:
+        """The name of this table."""
         ...
+
+    @property
+    def columns(self) -> _AliasedTableColumnsSequence:
+        """Returns columns as `_AliasedTableColumnsSequence`"""
+        ...
+
+    @property
+    def c(self) -> _AliasedTableColumnsSequence:
+        """Returns columns as `_AliasedTableColumnsSequence`. It is an alias for `self.columns`"""
+        ...
+
+    def __repr__(self) -> str: ...
 
 class DropTable(SchemaStatement):
     """
