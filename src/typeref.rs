@@ -50,6 +50,7 @@ pub(crate) static mut EXPR_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_m
 pub(crate) static mut TABLE_NAME_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 pub(crate) static mut INDEX_COLUMN_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
+pub(crate) static mut SELECT_STATEMENT_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
 
 // Python standard libraries types
 pub(crate) static mut STD_DECIMAL_TYPE: *mut pyo3::ffi::PyTypeObject = std::ptr::null_mut();
@@ -128,6 +129,7 @@ fn _initialize_typeref(py: pyo3::Python) -> bool {
         TABLE_NAME_TYPE = get_type_object_for::<crate::common::PyTableName>(py);
         COLUMN_TYPE = get_type_object_for::<crate::column::PyColumn>(py);
         INDEX_COLUMN_TYPE = get_type_object_for::<crate::common::PyIndexColumn>(py);
+        SELECT_STATEMENT_TYPE = get_type_object_for::<crate::query::select::PySelect>(py);
 
         STD_DECIMAL_TYPE = look_up_type_object(c"decimal", c"Decimal");
         STD_UUID_TYPE = look_up_type_object(c"uuid", c"UUID");

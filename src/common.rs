@@ -151,6 +151,59 @@ impl PyColumnRef {
         Self::from_str(&string)
     }
 
+    #[pyo3(signature=(**kwds))]
+    fn copy_with(&self, kwds: Option<&pyo3::Bound<'_, pyo3::types::PyDict>>) -> pyo3::PyResult<Self> {
+        use pyo3::types::PyDictMethods;
+
+        let mut cloned = self.clone();
+        if kwds.is_none() {
+            return Ok(cloned);
+        }
+
+        let kwds = unsafe { kwds.unwrap_unchecked() };
+
+        for (key, val) in kwds.iter() {
+            #[cfg(debug_assertions)]
+            let key = key.extract::<String>().unwrap();
+
+            #[cfg(not(debug_assertions))]
+            let key = unsafe { key.extract::<String>().unwrap_unchecked() };
+
+            // All of values are Option<string>
+            let val = unsafe {
+                if pyo3::ffi::Py_IsNone(val.as_ptr()) == 1 {
+                    None
+                } else if pyo3::ffi::PyUnicode_CheckExact(val.as_ptr()) == 1 {
+                    Some(val.extract::<String>().unwrap_unchecked())
+                } else {
+                    return Err(typeerror!(
+                        "expected str or None, got {:?}",
+                        val.py(),
+                        val.as_ptr()
+                    ));
+                }
+            };
+
+            if key == "name" {
+                if let Some(x) = val {
+                    // Ignore name=None
+                    cloned.col = ColumnNameOrAstrisk::Name(sea_query::Alias::new(x).into_iden());
+                }
+            } else if key == "table" {
+                cloned.table = val.map(|x| sea_query::Alias::new(x).into_iden());
+            } else if key == "schema" {
+                cloned.schema = val.map(|x| sea_query::Alias::new(x).into_iden());
+            } else {
+                return Err(typeerror!(format!(
+                    "got an unexpected keyword argument '{}'",
+                    key
+                ),));
+            }
+        }
+
+        Ok(cloned)
+    }
+
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::PyRef<'_, Self>) -> bool {
         if slf.as_ptr() == other.as_ptr() {
             return true;
@@ -362,10 +415,59 @@ impl PyTableName {
         self.alias.as_ref().map(|x| x.to_string())
     }
 
-    fn with_alias(&self, alias: Option<String>) -> Self {
-        let mut slf = self.clone();
-        slf.alias = alias.map(|x| sea_query::Alias::new(x).into_iden());
-        slf
+    #[pyo3(signature=(**kwds))]
+    fn copy_with(&self, kwds: Option<&pyo3::Bound<'_, pyo3::types::PyDict>>) -> pyo3::PyResult<Self> {
+        use pyo3::types::PyDictMethods;
+
+        let mut cloned = self.clone();
+        if kwds.is_none() {
+            return Ok(cloned);
+        }
+
+        let kwds = unsafe { kwds.unwrap_unchecked() };
+
+        for (key, val) in kwds.iter() {
+            #[cfg(debug_assertions)]
+            let key = key.extract::<String>().unwrap();
+
+            #[cfg(not(debug_assertions))]
+            let key = unsafe { key.extract::<String>().unwrap_unchecked() };
+
+            // All of values are Option<string>
+            let val = unsafe {
+                if pyo3::ffi::Py_IsNone(val.as_ptr()) == 1 {
+                    None
+                } else if pyo3::ffi::PyUnicode_CheckExact(val.as_ptr()) == 1 {
+                    Some(val.extract::<String>().unwrap_unchecked())
+                } else {
+                    return Err(typeerror!(
+                        "expected str or None, got {:?}",
+                        val.py(),
+                        val.as_ptr()
+                    ));
+                }
+            };
+
+            if key == "name" {
+                if let Some(x) = val {
+                    // Ignore name=None
+                    cloned.name = sea_query::Alias::new(x).into_iden();
+                }
+            } else if key == "database" {
+                cloned.database = val.map(|x| sea_query::Alias::new(x).into_iden());
+            } else if key == "schema" {
+                cloned.schema = val.map(|x| sea_query::Alias::new(x).into_iden());
+            } else if key == "alias" {
+                cloned.alias = val.map(|x| sea_query::Alias::new(x).into_iden());
+            } else {
+                return Err(typeerror!(format!(
+                    "got an unexpected keyword argument '{}'",
+                    key
+                ),));
+            }
+        }
+
+        Ok(cloned)
     }
 
     fn __eq__(slf: pyo3::PyRef<'_, Self>, other: &pyo3::Bound<'_, Self>) -> pyo3::PyResult<bool> {

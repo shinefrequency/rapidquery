@@ -111,6 +111,15 @@ impl PyExpr {
                 let value = value.cast_into_unchecked::<super::function::PyFunctionCall>();
 
                 Ok(Self::from_function_call(value.get()))
+            } else if type_ptr == crate::typeref::SELECT_STATEMENT_TYPE {
+                let value = value.cast_into_unchecked::<crate::query::select::PySelect>();
+                let stmt = value.get().inner.lock();
+                let stmt = stmt.as_statement(value.py());
+
+                Ok(Self::from_simple_expr(sea_query::SimpleExpr::SubQuery(
+                    None,
+                    Box::new(stmt.into_sub_query_statement()),
+                )))
             } else if pyo3::ffi::PyTuple_Check(value.as_ptr()) == 1 {
                 let value = value.cast_into_unchecked::<pyo3::types::PyTuple>();
                 let mut arr: Vec<Self> = Vec::new();
@@ -300,6 +309,86 @@ impl PyExpr {
         sea_query::SimpleExpr::Keyword(sea_query::Keyword::Null).into()
     }
 
+    #[classmethod]
+    fn exists(
+        cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        stmt: &pyo3::Bound<'_, pyo3::PyAny>,
+    ) -> pyo3::PyResult<Self> {
+        unsafe {
+            if pyo3::ffi::Py_TYPE(stmt.as_ptr()) != crate::typeref::SELECT_STATEMENT_TYPE {
+                return Err(typeerror!("expected Select, got {}", stmt.py(), stmt.as_ptr()));
+            }
+
+            let stmt = {
+                let val = stmt.cast_unchecked::<crate::query::select::PySelect>();
+                let lock = val.get().inner.lock();
+                lock.as_statement(cls.py())
+            };
+
+            Ok(sea_query::Expr::exists(stmt).into())
+        }
+    }
+
+    #[classmethod]
+    fn any(
+        cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        stmt: &pyo3::Bound<'_, pyo3::PyAny>,
+    ) -> pyo3::PyResult<Self> {
+        unsafe {
+            if pyo3::ffi::Py_TYPE(stmt.as_ptr()) != crate::typeref::SELECT_STATEMENT_TYPE {
+                return Err(typeerror!("expected Select, got {}", stmt.py(), stmt.as_ptr()));
+            }
+
+            let stmt = {
+                let val = stmt.cast_unchecked::<crate::query::select::PySelect>();
+                let lock = val.get().inner.lock();
+                lock.as_statement(cls.py())
+            };
+
+            Ok(sea_query::Expr::any(stmt).into())
+        }
+    }
+
+    #[classmethod]
+    fn some(
+        cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        stmt: &pyo3::Bound<'_, pyo3::PyAny>,
+    ) -> pyo3::PyResult<Self> {
+        unsafe {
+            if pyo3::ffi::Py_TYPE(stmt.as_ptr()) != crate::typeref::SELECT_STATEMENT_TYPE {
+                return Err(typeerror!("expected Select, got {}", stmt.py(), stmt.as_ptr()));
+            }
+
+            let stmt = {
+                let val = stmt.cast_unchecked::<crate::query::select::PySelect>();
+                let lock = val.get().inner.lock();
+                lock.as_statement(cls.py())
+            };
+
+            Ok(sea_query::Expr::some(stmt).into())
+        }
+    }
+
+    #[classmethod]
+    fn all(
+        cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        stmt: &pyo3::Bound<'_, pyo3::PyAny>,
+    ) -> pyo3::PyResult<Self> {
+        unsafe {
+            if pyo3::ffi::Py_TYPE(stmt.as_ptr()) != crate::typeref::SELECT_STATEMENT_TYPE {
+                return Err(typeerror!("expected Select, got {}", stmt.py(), stmt.as_ptr()));
+            }
+
+            let stmt = {
+                let val = stmt.cast_unchecked::<crate::query::select::PySelect>();
+                let lock = val.get().inner.lock();
+                lock.as_statement(cls.py())
+            };
+
+            Ok(sea_query::Expr::all(stmt).into())
+        }
+    }
+
     fn cast_as(slf: pyo3::PyRef<'_, Self>, value: String) -> Self {
         slf.inner.clone().cast_as(sea_query::Alias::new(value)).into()
     }
@@ -368,12 +457,22 @@ impl PyExpr {
 
     fn __and__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
-        Ok(sea_query::ExprTrait::bit_and(slf.inner.clone(), other.inner).into())
+        Ok(sea_query::ExprTrait::and(slf.inner.clone(), other.inner).into())
     }
 
     fn __or__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::or(slf.inner.clone(), other.inner).into())
+    }
+
+    fn bit_and<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
+        let other = Self::try_from(other.clone())?;
+        Ok(sea_query::ExprTrait::bit_and(slf.inner.clone(), other.inner).into())
+    }
+
+    fn bit_or<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
+        let other = Self::try_from(other.clone())?;
+        Ok(sea_query::ExprTrait::bit_or(slf.inner.clone(), other.inner).into())
     }
 
     fn __truediv__<'a>(
@@ -550,6 +649,41 @@ impl PyExpr {
         let b = Self::try_from(b.clone())?;
 
         Ok(sea_query::ExprTrait::not_between(slf.inner.clone(), a.inner, b.inner).into())
+    }
+
+    fn in_subquery(slf: pyo3::PyRef<'_, Self>, stmt: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<Self> {
+        unsafe {
+            if pyo3::ffi::Py_TYPE(stmt.as_ptr()) != crate::typeref::SELECT_STATEMENT_TYPE {
+                return Err(typeerror!("expected Select, got {}", stmt.py(), stmt.as_ptr()));
+            }
+
+            let stmt = {
+                let val = stmt.cast_unchecked::<crate::query::select::PySelect>();
+                let lock = val.get().inner.lock();
+                lock.as_statement(slf.py())
+            };
+
+            Ok(sea_query::ExprTrait::in_subquery(slf.inner.clone(), stmt).into())
+        }
+    }
+
+    fn not_in_subquery(
+        slf: pyo3::PyRef<'_, Self>,
+        stmt: &pyo3::Bound<'_, pyo3::PyAny>,
+    ) -> pyo3::PyResult<Self> {
+        unsafe {
+            if pyo3::ffi::Py_TYPE(stmt.as_ptr()) != crate::typeref::SELECT_STATEMENT_TYPE {
+                return Err(typeerror!("expected Select, got {}", stmt.py(), stmt.as_ptr()));
+            }
+
+            let stmt = {
+                let val = stmt.cast_unchecked::<crate::query::select::PySelect>();
+                let lock = val.get().inner.lock();
+                lock.as_statement(slf.py())
+            };
+
+            Ok(sea_query::ExprTrait::not_in_subquery(slf.inner.clone(), stmt).into())
+        }
     }
 
     fn in_(slf: pyo3::PyRef<'_, Self>, other: Vec<pyo3::Py<pyo3::PyAny>>) -> pyo3::PyResult<Self> {

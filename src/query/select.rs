@@ -1,6 +1,5 @@
 use crate::backend::PyQueryStatement;
 use pyo3::types::{PyAnyMethods, PyTupleMethods};
-use pyo3::PyTypeInfo;
 use sea_query::IntoIden;
 
 #[pyo3::pyclass(module = "rapidquery._lib", name = "SelectExpr", frozen)]
@@ -143,6 +142,7 @@ pub struct SelectInner {
     // TODO: support from_values
     pub tables: Vec<SelectTable>,
 
+    // TODO: support subqueries
     // Always is `Option<SelectExpr>`
     pub cols: Vec<pyo3::Py<pyo3::PyAny>>,
 
@@ -169,11 +169,13 @@ pub struct SelectInner {
     // TODO
     // pub window: Option<pyo3::Py<pyo3::PyAny>>,
     // pub with: Option<pyo3::Py<pyo3::PyAny>>,
+    // pub table_sample: Option<pyo3::Py<pyo3::PyAny>>,
+    // pub index_hint: Option<pyo3::Py<pyo3::PyAny>>,
 }
 
 impl SelectInner {
     #[inline]
-    fn as_statement(&self, py: pyo3::Python) -> sea_query::SelectStatement {
+    pub fn as_statement(&self, py: pyo3::Python) -> sea_query::SelectStatement {
         let mut stmt = sea_query::SelectStatement::new();
 
         match &self.distinct {
@@ -433,8 +435,10 @@ impl PySelect {
             ));
         }
 
-        let subquery = {
-            if std::hint::likely(PySelect::is_exact_type_of(subquery)) {
+        let subquery = unsafe {
+            if std::hint::likely(
+                pyo3::ffi::Py_TYPE(subquery.as_ptr()) == crate::typeref::SELECT_STATEMENT_TYPE,
+            ) {
                 subquery.clone().unbind()
             } else {
                 return Err(typeerror!(
@@ -640,12 +644,14 @@ impl PySelect {
             ));
         }
 
-        if !PySelect::is_exact_type_of(statement) {
-            return Err(typeerror!(
-                "expected Select, got {:?}",
-                statement.py(),
-                statement.as_ptr()
-            ));
+        unsafe {
+            if pyo3::ffi::Py_TYPE(statement.as_ptr()) != crate::typeref::SELECT_STATEMENT_TYPE {
+                return Err(typeerror!(
+                    "expected Select, got {:?}",
+                    statement.py(),
+                    statement.as_ptr()
+                ));
+            }
         }
 
         let r#type = {

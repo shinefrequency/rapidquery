@@ -733,6 +733,15 @@ class ColumnRef:
         """
         ...
 
+    def copy(self) -> Self: ...
+    def __copy__(self) -> Self: ...
+    def copy_with(
+        self,
+        *,
+        name: typing.Optional[str] = ...,
+        table: typing.Optional[str] = ...,
+        schema: typing.Optional[str] = ...,
+    ) -> Self: ...
     def __repr__(self) -> str:
         """
         Return a string representation of the ColumnRef.
@@ -750,6 +759,7 @@ _ExprValue = typing.Union[
     tuple,
     _AsteriskType,
     typing.Any,
+    Select,
 ]
 
 class Expr:
@@ -835,6 +845,14 @@ class Expr:
         """
         ...
 
+    @classmethod
+    def exists(cls, stmt: Select) -> Self: ...
+    @classmethod
+    def any(cls, stmt: Select) -> Self: ...
+    @classmethod
+    def some(cls, stmt: Select) -> Self: ...
+    @classmethod
+    def all(cls, stmt: Select) -> Self: ...
     @classmethod
     def tuple(
         cls,
@@ -1019,6 +1037,8 @@ class Expr:
         """
         ...
 
+    def bit_and(self, other: _ExprValue) -> Self: ...
+    def bit_or(self, other: _ExprValue) -> Self: ...
     def __truediv__(self, other: _ExprValue) -> Self:
         """
         Create a division expression.
@@ -1271,6 +1291,8 @@ class Expr:
         """
         ...
 
+    def in_subquery(self, stmt: Select) -> Self: ...
+    def not_in_subquery(self, stmt: Select) -> Self: ...
     def in_(self, other: typing.Sequence[_ExprValue]) -> Self:
         """
         Create an IN membership expression.
@@ -1842,7 +1864,6 @@ class TableName:
     def database(self) -> typing.Optional[str]: ...
     @property
     def alias(self) -> typing.Optional[str]: ...
-    def with_alias(self, alias: typing.Optional[str]) -> Self: ...
     @classmethod
     def parse(cls, string: str) -> Self:
         """
@@ -1875,6 +1896,15 @@ class TableName:
         Check inequality with another TableName.
         """
         ...
+
+    def copy_with(
+        self,
+        *,
+        name: typing.Optional[str] = ...,
+        schema: typing.Optional[str] = ...,
+        database: typing.Optional[str] = ...,
+        alias: typing.Optional[str] = ...,
+    ) -> Self: ...
 
     def __copy__(self) -> Self:
         """
