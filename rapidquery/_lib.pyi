@@ -742,14 +742,7 @@ class ColumnRef:
         table: typing.Optional[str] = ...,
         schema: typing.Optional[str] = ...,
     ) -> Self: ...
-    def __repr__(self) -> str:
-        """
-        Return a string representation of the ColumnRef.
-
-        Returns:
-            A string that could be used to recreate this ColumnRef
-        """
-        ...
+    def __repr__(self) -> str: ...
 
 _ExprValue = typing.Union[
     Expr,
@@ -775,18 +768,18 @@ class Expr:
 
     Example::
         # Basic comparison
-        e = Expr(1) > Expr(2)
-        e.build("mysql")
+        e = Expr(1) > 2
+        e.to_sql("mysql")
         # Result: 1 > 2
 
         # IN clause with tuple
-        e = Expr.col("id").in_(Expr((1, 2, 3)))
-        e.build("mysql")
+        e = Expr.col("id").in_((1, 2, 3))
+        e.to_sql("mysql")
         # Result: "id" IN (1, 2, 3)
 
         # Complex expression with functions
         e = FunctionCall.upper(Expr.col("name")).to_expr() == "JOHN"
-        e.build("postgres")
+        e.to_sql("postgres")
         # Result: UPPER("name") = 'JOHN'
     """
 
@@ -868,7 +861,7 @@ class Expr:
             An Expr representing a SQL tuple
 
         Example:
-            >>> Expr.tuple([Expr.col("id"), Expr.col("name")])
+            >>> Expr.tuple(["id", "name"])
             # Can be used in: WHERE (id, name) IN ((1, 'a'), (2, 'b'))
         """
         ...
@@ -2418,7 +2411,7 @@ class AliasedTable:
     def __new__(cls, table: typing.Union[Table, Self], alias: str) -> Self: ...
     @property
     def name(self) -> TableName:
-        """The name of this table."""
+        """The name of aliased table."""
         ...
 
     @property
@@ -3325,44 +3318,307 @@ class Update(QueryStatement):
     def __repr__(self) -> str: ...
 
 class SelectExpr:
-    def __new__(cls, expr: _ExprValue, alias: typing.Optional[str] = ...): ...
+    """
+    Represents a column expression with an optional alias in a SELECT clause.
+
+    Used to specify both the expression to select and an optional alias name
+    for the result column.
+
+    Example:
+        >>> SelectExpr(Expr.col("price") * 1.1, "price_with_tax")
+        >>> SelectExpr(Expr.count(), "total_count")
+    """
+
+    def __new__(cls, expr: _ExprValue, alias: typing.Optional[str] = ...):
+        """
+        Create a new SelectExpr.
+
+        Args:
+            expr: The expression to select
+            alias: Optional alias name for the result column
+
+        Returns:
+            A new SelectExpr instance
+        """
+        ...
+
     @property
-    def expr(self) -> Expr: ...
+    def expr(self) -> Expr:
+        """The expression to be selected."""
+        ...
+
     @property
-    def alias(self) -> typing.Optional[str]: ...
+    def alias(self) -> typing.Optional[str]:
+        """The alias name for the result column, if any."""
+        ...
+
     def __repr__(self) -> str: ...
 
 class Select(QueryStatement):
-    def __new__(cls, *cols: typing.Union[SelectExpr, _ExprValue]) -> Self: ...
-    def distinct(self, *on: typing.Union[Column, ColumnRef, str]) -> Self: ...
-    def columns(self, *cols: typing.Union[SelectExpr, _ExprValue]) -> Self: ...
-    def from_table(self, table: typing.Union[Table, TableName, str]) -> Self: ...
-    def from_subquery(self, subquery: Select, alias: str) -> Self: ...
-    def from_function(self, function: FunctionCall, alias: str) -> Self: ...
-    def limit(self, n: int) -> Self: ...
-    def offset(self, n: int) -> Self: ...
-    def where(self, condition: _ExprValue) -> Self: ...
-    def having(self, condition: _ExprValue) -> Self: ...
-    def order_by(self, order: Order) -> Self: ...
+    """
+    Builds SELECT SQL statements with a fluent interface.
+
+    Provides a chainable API for constructing SELECT queries with support for:
+    - Column selection with expressions and aliases
+    - Table and subquery sources
+    - Filtering with WHERE and HAVING
+    - Joins (inner, left, right, full, cross, lateral)
+    - Grouping and aggregation
+    - Ordering and pagination
+    - Set operations (UNION, EXCEPT, INTERSECT)
+    - Row locking for transactions
+    - DISTINCT queries
+
+    Example:
+        >>> Select(Expr.col("name"), Expr.col("email")).from_table("users") \\
+        ...     .where(Expr.col("active") == True) \\
+        ...     .order_by(Order(Expr.col("created_at"), ORDER_DESC)) \\
+        ...     .limit(10)
+        >>> Select().columns("id", "title").from_table("posts") \\
+        ...     .join("users", Expr.col("posts.user_id") == Expr.col("users.id")) \\
+        ...     .where(Expr.col("published") == True)
+    """
+
+    def __new__(cls, *cols: typing.Union[SelectExpr, _ExprValue]) -> Self:
+        """
+        Create a new SELECT statement builder.
+
+        Args:
+            *cols: Optional initial columns to select (expressions or SelectExpr objects)
+
+        Returns:
+            A new Select instance
+        """
+        ...
+
+    def distinct(self, *on: typing.Union[Column, ColumnRef, str]) -> Self:
+        """
+        Make this a DISTINCT query to eliminate duplicate rows.
+
+        Args:
+            *on: Optional columns for DISTINCT ON (PostgreSQL-specific)
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def columns(self, *cols: typing.Union[SelectExpr, _ExprValue]) -> Self:
+        """
+        Specify or add columns to select.
+
+        Args:
+            *cols: Column names, expressions, or SelectExpr objects to select
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def from_table(self, table: typing.Union[Table, TableName, str]) -> Self:
+        """
+        Specify the source table for the query.
+
+        Args:
+            table: The table name, Table object, or TableName to select from
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def from_subquery(self, subquery: Select, alias: str) -> Self:
+        """
+        Use a subquery as the data source.
+
+        Args:
+            subquery: The SELECT query to use as a subquery
+            alias: Alias name for the subquery
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def from_function(self, function: FunctionCall, alias: str) -> Self:
+        """
+        Use a table-returning function as the data source.
+
+        Args:
+            function: The function call that returns table data
+            alias: Alias name for the function result
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def limit(self, n: int) -> Self:
+        """
+        Limit the number of rows returned.
+
+        Args:
+            n: Maximum number of rows to return
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def offset(self, n: int) -> Self:
+        """
+        Skip a number of rows before returning results.
+
+        Typically used with LIMIT for pagination.
+
+        Args:
+            n: Number of rows to skip
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def where(self, condition: _ExprValue) -> Self:
+        """
+        Add a WHERE condition to filter rows.
+
+        Args:
+            condition: The filter condition expression
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def having(self, condition: _ExprValue) -> Self:
+        """
+        Add a HAVING condition to filter grouped results.
+
+        Used with GROUP BY to filter aggregated data.
+
+        Args:
+            condition: The filter condition expression
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def order_by(self, order: Order) -> Self:
+        """
+        Specify the order of results.
+
+        Args:
+            order: The ordering specification
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
     def lock(
         self,
         type: typing.Literal["exclusive", "shared"] = ...,
         behavior: typing.Optional[typing.Literal["nowait", "skip"]] = ...,
         tables: typing.Sequence[typing.Union[str, TableName, Table]] = ...,
-    ) -> Self: ...
+    ) -> Self:
+        """
+        Add row locking for transactional queries (FOR UPDATE/FOR SHARE).
+
+        Args:
+            type: Lock type - "exclusive" (FOR UPDATE) or "shared" (FOR SHARE)
+            behavior: Optional lock behavior - "nowait" or "skip" (SKIP LOCKED)
+            tables: Optional specific tables to lock (for multi-table queries)
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
     def group_by(
         self,
         *cols: typing.Union[SelectExpr, _ExprValue],
-    ) -> Self: ...
+    ) -> Self:
+        """
+        Group results by specified columns for aggregation.
+
+        Args:
+            *cols: Column names or expressions to group by
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
     def union(
         self,
         statement: Self,
         type: typing.Literal["all", "except", "intersect", "distinct"] = ...,
-    ) -> Self: ...
+    ) -> Self:
+        """
+        Combine this query with another using set operations.
+
+        Args:
+            statement: The SELECT query to combine with
+            type: Set operation type:
+                - "distinct": UNION (default, removes duplicates)
+                - "all": UNION ALL (keeps duplicates)
+                - "except": EXCEPT (rows in first but not second)
+                - "intersect": INTERSECT (rows in both queries)
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
     def join(
         self,
         table: typing.Union[str, TableName, Table],
         on: _ExprValue,
         type: typing.Literal["", "cross", "full", "inner", "right", "left"] = ...,
-        lateral: bool = ...,
-    ) -> Self: ...
+    ) -> Self:
+        """
+        Join another table to the query.
+
+        Args:
+            table: The table name, Table object, or TableName to join
+            on: The join condition expression
+            type: Join type:
+                - "": Default join (typically INNER)
+                - "inner": INNER JOIN
+                - "left": LEFT JOIN (LEFT OUTER JOIN)
+                - "right": RIGHT JOIN (RIGHT OUTER JOIN)
+                - "full": FULL JOIN (FULL OUTER JOIN)
+                - "cross": CROSS JOIN
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def join_lateral(
+        self,
+        query: Self,
+        alias: str,
+        on: _ExprValue,
+        type: typing.Literal["", "cross", "full", "inner", "right", "left"] = ...,
+    ) -> Self:
+        """
+        Join a lateral subquery (subquery that can reference prior FROM items).
+
+        LATERAL allows the subquery to reference columns from preceding tables
+        in the FROM clause. Useful for correlated subqueries in joins.
+
+        Args:
+            query: The SELECT query to join laterally
+            alias: Alias name for the lateral subquery
+            on: The join condition expression
+            type: Join type (see join() for options)
+
+        Returns:
+            Self for method chaining
+        """
+        ...
+
+    def __repr__(self) -> str: ...
