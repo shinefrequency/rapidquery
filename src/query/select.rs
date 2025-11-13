@@ -1,5 +1,5 @@
 use crate::backend::PyQueryStatement;
-use pyo3::types::{PyAnyMethods, PyTupleMethods};
+use pyo3::types::PyTupleMethods;
 use sea_query::IntoIden;
 
 #[pyo3::pyclass(module = "rapidquery._lib", name = "SelectExpr", frozen)]
@@ -157,8 +157,7 @@ pub struct SelectInner {
     // Always is `Option<PyExpr>`
     pub having: Option<pyo3::Py<pyo3::PyAny>>,
 
-    // Always is `Vec<PyOrder>`
-    pub orders: Vec<pyo3::Py<pyo3::PyAny>>,
+    pub orders: Vec<super::order::OrderClause>,
 
     pub distinct: SelectDistinct,
     pub join: Vec<SelectJoin>,
@@ -249,9 +248,6 @@ impl SelectInner {
         }
 
         for order in self.orders.iter() {
-            let order = unsafe { order.cast_bound_unchecked::<super::order::PyOrder>(py) };
-            let order = order.get();
-
             let target = unsafe { order.target.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
             let target = target.get().inner.clone();
 
@@ -543,17 +539,14 @@ impl PySelect {
         Ok(slf)
     }
 
+    #[pyo3(signature=(target, order, null_order=None))]
     fn order_by<'a>(
         slf: pyo3::PyRef<'a, Self>,
-        order: &'a pyo3::Bound<'a, pyo3::PyAny>,
+        target: pyo3::Bound<'_, pyo3::PyAny>,
+        order: String,
+        null_order: Option<String>,
     ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
-        let order = unsafe {
-            if order.is_exact_instance_of::<super::order::PyOrder>() {
-                order.clone().unbind()
-            } else {
-                return Err(typeerror!("expected Order, got {:?}", order.py(), order.as_ptr()));
-            }
-        };
+        let order = super::order::OrderClause::from_parameters(target, order, null_order)?;
 
         {
             let mut lock = slf.inner.lock();

@@ -33,8 +33,6 @@ from ._lib import Expr as Expr
 from ._lib import FloatType as FloatType
 from ._lib import ForeignKey as ForeignKey
 from ._lib import FunctionCall as FunctionCall
-from ._lib import INDEX_ORDER_ASC as INDEX_ORDER_ASC
-from ._lib import INDEX_ORDER_DESC as INDEX_ORDER_DESC
 from ._lib import INTERVAL_DAY as INTERVAL_DAY
 from ._lib import INTERVAL_DAY_TO_HOUR as INTERVAL_DAY_TO_HOUR
 from ._lib import INTERVAL_DAY_TO_MINUTE as INTERVAL_DAY_TO_MINUTE
@@ -59,12 +57,7 @@ from ._lib import JsonType as JsonType
 from ._lib import LTreeType as LTreeType
 from ._lib import MacAddressType as MacAddressType
 from ._lib import MoneyType as MoneyType
-from ._lib import ORDER_ASC as ORDER_ASC
-from ._lib import ORDER_DESC as ORDER_DESC
-from ._lib import ORDER_NULL_FIRST as ORDER_NULL_FIRST
-from ._lib import ORDER_NULL_LAST as ORDER_NULL_LAST
 from ._lib import OnConflict as OnConflict
-from ._lib import Order as Order
 from ._lib import QueryStatement as QueryStatement
 from ._lib import RenameTable as RenameTable
 from ._lib import SchemaStatement as SchemaStatement

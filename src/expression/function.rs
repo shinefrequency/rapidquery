@@ -33,6 +33,25 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
+    fn now(_cls: &pyo3::Bound<'_, pyo3::types::PyType>) -> pyo3::PyResult<Self> {
+        Ok(Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::cust(sea_query::Alias::new("NOW"))),
+        })
+    }
+
+    #[classmethod]
+    fn sum(
+        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
+        expr: pyo3::Bound<'_, pyo3::PyAny>,
+    ) -> pyo3::PyResult<Self> {
+        let expr = super::PyExpr::try_from(expr)?;
+
+        Ok(Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::sum(expr.inner)),
+        })
+    }
+
+    #[classmethod]
     fn min(
         _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
         expr: pyo3::Bound<'_, pyo3::PyAny>,

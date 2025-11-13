@@ -550,18 +550,26 @@ impl From<&str> for PyIndexColumn {
 impl PyIndexColumn {
     #[new]
     #[pyo3(signature=(name, prefix=None, order=None))]
-    fn new(name: String, prefix: Option<u32>, order: Option<u8>) -> pyo3::PyResult<Self> {
-        if order.is_some_and(|x| x > 1) {
-            return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(
-                "Use INDEX_ORDER_* constants as order",
-            ));
-        }
+    fn new(name: String, prefix: Option<u32>, order: Option<String>) -> pyo3::PyResult<Self> {
+        let order = {
+            if let Some(mut x) = order {
+                x.make_ascii_lowercase();
 
-        Ok(Self {
-            name,
-            prefix,
-            order: order.map(|x| unsafe { std::mem::transmute(x) }),
-        })
+                if x == "asc" {
+                    Some(sea_query::IndexOrder::Asc)
+                } else if x == "desc" {
+                    Some(sea_query::IndexOrder::Desc)
+                } else {
+                    return Err(pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
+                        "invalid order value, expected 'asc', 'desc' or None; got {x:?}"
+                    )));
+                }
+            } else {
+                None
+            }
+        };
+
+        Ok(Self { name, prefix, order })
     }
 
     #[getter]
@@ -575,8 +583,14 @@ impl PyIndexColumn {
     }
 
     #[getter]
-    fn order(&self) -> Option<u8> {
-        self.order.as_ref().map(|x| x.clone() as u8)
+    fn order(&self) -> Option<String> {
+        self.order
+            .clone()
+            .map(|x| match x {
+                sea_query::IndexOrder::Asc => "asc",
+                sea_query::IndexOrder::Desc => "desc",
+            })
+            .map(String::from)
     }
 
     fn __copy__(&self) -> Self {
@@ -598,9 +612,9 @@ impl PyIndexColumn {
         }
         if let Some(x) = &self.order {
             if matches!(x, sea_query::IndexOrder::Asc) {
-                write!(&mut s, " order=INDEX_ORDER_ASC").unwrap();
+                write!(&mut s, " order='asc'").unwrap();
             } else {
-                write!(&mut s, " order=INDEX_ORDER_DESC").unwrap();
+                write!(&mut s, " order='desc'").unwrap();
             }
         }
         write!(&mut s, ">").unwrap();

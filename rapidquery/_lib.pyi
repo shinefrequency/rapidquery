@@ -647,7 +647,7 @@ class AdaptedValue(typing.Generic[T]):
 
     # `AdaptedValue` is not a child of SchemaStatement, but we used
     # `to_sql` name for this method to make compatible with others
-    def to_sql(self) -> str:
+    def to_sql(self, backend: _Backends) -> str:
         """
         Converts the adapted value to SQL.
         """
@@ -1312,7 +1312,7 @@ class Expr:
 
     # `Expr` is not a child of SchemaStatement, but we used
     # `to_sql` name for this method to make compatible with others
-    def to_sql(self) -> str:
+    def to_sql(self, backend: _Backends) -> str:
         """
         Converts the adapted value to SQL.
         """
@@ -1370,6 +1370,10 @@ class FunctionCall:
         """
         ...
 
+    @classmethod
+    def sum(cls, expr: _ExprValue) -> Self: ...
+    @classmethod
+    def now(cls) -> Self: ...
     @classmethod
     def min(cls, expr: _ExprValue) -> Self:
         """
@@ -1617,7 +1621,7 @@ class FunctionCall:
 
     # `FunctionCall` is not a child of SchemaStatement, but we used
     # `to_sql` name for this method to make compatible with others
-    def to_sql(self) -> str:
+    def to_sql(self, backend: _Backends) -> str:
         """
         Converts the adapted value to SQL.
         """
@@ -2027,11 +2031,6 @@ class ForeignKey:
         """
         ...
 
-INDEX_ORDER_ASC: typing.Final[int]
-"""Constant representing ascending index order."""
-INDEX_ORDER_DESC: typing.Final[int]
-"""Constant representing descending index order."""
-
 class IndexColumn:
     """
     Defines a column within an index specification.
@@ -2047,7 +2046,7 @@ class IndexColumn:
     Example:
 
         >>> IndexColumn("name")  # Simple column
-        >>> IndexColumn("email", order=INDEX_ORDER_DESC)  # Descending order
+        >>> IndexColumn("email", order="desc")  # Descending order
         >>> IndexColumn("content", prefix=100)  # Prefix indexing for long text
     """
 
@@ -2057,14 +2056,14 @@ class IndexColumn:
     prefix: typing.Optional[int]
     """Number of characters to index for string columns (prefix indexing)."""
 
-    order: typing.Optional[int]
-    """Sort order for this column (INDEX_ORDER_ASC or INDEX_ORDER_DESC)."""
+    order: typing.Optional[typing.Literal["asc", "desc"]]
+    """Sort order for this column ("asc" or "desc")."""
 
     def __new__(
         cls,
         name: str,
         prefix: typing.Optional[int] = ...,
-        order: typing.Optional[int] = ...,
+        order: typing.Optional[typing.Literal["asc", "desc"]] = ...,
     ) -> Self:
         """
         Create a new IndexColumn.
@@ -2072,7 +2071,7 @@ class IndexColumn:
         Args:
             name: The column name
             prefix: Prefix length for string columns
-            order: Sort order (INDEX_ORDER_ASC or INDEX_ORDER_DESC)
+            order: Sort order ("asc" or "desc")
 
         Returns:
             A new IndexColumn instance
@@ -2115,7 +2114,7 @@ class Index(SchemaStatement):
     Example:
 
         >>> Index(
-        ...     columns=["id", IndexColumn("name", order=INDEX_ORDER_DESC)],
+        ...     columns=["id", IndexColumn("name", order="desc")],
         ...     name="idx_user_name",
         ...     unique=True
         ... )
@@ -2205,7 +2204,7 @@ class Index(SchemaStatement):
         """
         ...
 
-class DropIndex:
+class DropIndex(SchemaStatement):
     """
     Represents a DROP INDEX SQL statement.
 
@@ -2898,61 +2897,6 @@ class OnConflict:
 
     def __repr__(self) -> str: ...
 
-ORDER_ASC: typing.Final[int]
-ORDER_DESC: typing.Final[int]
-ORDER_NULL_FIRST: typing.Final[int]
-ORDER_NULL_LAST: typing.Final[int]
-
-class Order:
-    """
-    Specifies ordering criteria for query results.
-
-    Defines how rows should be sorted in SELECT queries, including:
-    - The expression to sort by
-    - Sort direction (ascending or descending)
-    - NULL value positioning (first or last)
-
-    Example:
-        >>> Order(Expr.col("created_at"), ORDER_DESC, ORDER_NULL_LAST)
-        >>> Order("name", ORDER_ASC)
-    """
-
-    def __new__(
-        cls,
-        target: _ExprValue,
-        order: int,
-        null_order: typing.Optional[int] = ...,
-    ) -> Self:
-        """
-        Create a new ordering specification.
-
-        Args:
-            target: The expression to sort by
-            order: Sort direction (ORDER_ASC or ORDER_DESC)
-            null_order: NULL positioning (ORDER_NULL_FIRST or ORDER_NULL_LAST)
-
-        Returns:
-            A new Order instance
-        """
-        ...
-
-    @property
-    def target(self) -> Expr:
-        """The expression to sort by."""
-        ...
-
-    @property
-    def order(self) -> typing.Union[int, typing.Sequence[AdaptedValue]]:
-        """The sort direction (ORDER_ASC or ORDER_DESC)."""
-        ...
-
-    @property
-    def null_order(self) -> typing.Optional[int]:
-        """NULL value positioning (ORDER_NULL_FIRST or ORDER_NULL_LAST)."""
-        ...
-
-    def __repr__(self) -> str: ...
-
 class Insert(QueryStatement):
     """
     Builds INSERT SQL statements with a fluent interface.
@@ -3098,11 +3042,6 @@ class Delete(QueryStatement):
     - LIMIT for restricting deletion count
     - ORDER BY for determining deletion order
     - RETURNING clauses for getting deleted data
-
-    Example:
-        >>> Delete().from_table("users").where(
-        ...     Expr.col("last_login") < "2020-01-01"
-        ... ).limit(100).returning("id", "email")
     """
 
     def __new__(cls) -> Self:
@@ -3171,14 +3110,16 @@ class Delete(QueryStatement):
         """
         ...
 
-    def order_by(self, order: Order) -> Self:
+    def order_by(
+        self,
+        target: _ExprValue,
+        order: typing.Literal["asc", "desc"],
+        null_order: typing.Optional[typing.Literal["first", "last"]] = ...,
+    ) -> Self:
         """
         Specify the order in which to delete rows.
 
         Typically used with LIMIT to delete specific rows.
-
-        Args:
-            order: The ordering specification
 
         Returns:
             Self for method chaining
@@ -3268,14 +3209,16 @@ class Update(QueryStatement):
         """
         ...
 
-    def order_by(self, order: Order) -> Self:
+    def order_by(
+        self,
+        target: _ExprValue,
+        order: typing.Literal["asc", "desc"],
+        null_order: typing.Optional[typing.Literal["first", "last"]] = ...,
+    ) -> Self:
         """
         Specify the order in which to update rows.
 
         Typically used with LIMIT to update specific rows.
-
-        Args:
-            order: The ordering specification
 
         Returns:
             Self for method chaining
@@ -3505,12 +3448,14 @@ class Select(QueryStatement):
         """
         ...
 
-    def order_by(self, order: Order) -> Self:
+    def order_by(
+        self,
+        target: _ExprValue,
+        order: typing.Literal["asc", "desc"],
+        null_order: typing.Optional[typing.Literal["first", "last"]] = ...,
+    ) -> Self:
         """
         Specify the order of results.
-
-        Args:
-            order: The ordering specification
 
         Returns:
             Self for method chaining
@@ -3538,7 +3483,7 @@ class Select(QueryStatement):
 
     def group_by(
         self,
-        *cols: typing.Union[SelectExpr, _ExprValue],
+        *cols: _ExprValue,
     ) -> Self:
         """
         Group results by specified columns for aggregation.

@@ -619,7 +619,7 @@ impl PyDropIndex {
         }
     }
 
-    fn build(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {
+    fn to_sql(&self, backend: &pyo3::Bound<'_, pyo3::PyAny>) -> pyo3::PyResult<String> {
         let lock = self.inner.lock();
         let stmt = lock.as_statement(backend.py());
         drop(lock);
