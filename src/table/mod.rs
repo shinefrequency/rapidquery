@@ -1,5 +1,7 @@
 mod aliased;
 mod ops;
+
+#[allow(clippy::module_inception)]
 mod table;
 
 pub use aliased::{PyAliasedTable, Py_AliasedTableColumnsSequence};

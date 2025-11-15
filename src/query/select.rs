@@ -56,7 +56,7 @@ impl PySelectExpr {
             let expr = crate::expression::PyExpr::from_bound_into_any(bound.clone())?;
             let slf = Self { expr, alias: None };
 
-            return pyo3::Py::new(bound.py(), slf).map(|x| x.into_any());
+            pyo3::Py::new(bound.py(), slf).map(|x| x.into_any())
         }
     }
 }
@@ -368,9 +368,9 @@ impl PySelect {
                                 .unwrap()
                                 .into_any(),
                         );
-                    } else if col_ptr == crate::typeref::COLUMN_REF_TYPE {
-                        cols.push(col.unbind());
-                    } else if pyo3::ffi::PyUnicode_Check(col.as_ptr()) == 1 {
+                    } else if (col_ptr == crate::typeref::COLUMN_REF_TYPE)
+                        || (pyo3::ffi::PyUnicode_Check(col.as_ptr()) == 1)
+                    {
                         cols.push(col.unbind());
                     } else {
                         return Err(typeerror!(
@@ -725,7 +725,7 @@ impl PySelect {
                 crate::common::PyTableName::from_pyobject(table)?
             }
         };
-        
+
         let expr = crate::expression::PyExpr::from_bound_into_any(on.clone())?;
 
         let join_expr = SelectJoin {

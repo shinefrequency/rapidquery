@@ -31,8 +31,8 @@ class TestTable:
         assert table.name.schema is None
         assert table.name.database is None
         assert len(table.columns) == 2
-        assert table.get_column("id").name == "id"
-        assert table.get_column("name").name == "name"
+        assert table.c.id.name == "id"
+        assert table.c.name.name == "name"
         assert table.if_not_exists is False
         assert table.temporary is False
 
@@ -79,7 +79,7 @@ class TestTable:
         columns = [Column("id", IntegerType()), Column("email", StringType(255))]
         table = Table("users", columns)
 
-        column = table.get_column("email")
+        column = table.c.email
 
         assert column.name == "email"
         assert isinstance(column.type, StringType)
@@ -90,7 +90,7 @@ class TestTable:
         table = Table("users", columns)
 
         with pytest.raises(KeyError):
-            table.get_column("nonexistent")
+            table.columns.nonexistent
 
     def test_table_build_method(self):
         """Test that build method works with backend"""

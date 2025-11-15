@@ -188,6 +188,11 @@ impl Py_TableColumnsSequence {
         let mut lock = slf.inner.lock();
         lock.columns.clear();
     }
+
+    fn __len__(slf: pyo3::PyRef<'_, Self>) -> usize {
+        let lock = slf.inner.lock();
+        lock.columns.len()
+    }
 }
 
 #[pyo3::pyclass(module = "rapidquery._lib", name = "Table", frozen, extends=PySchemaStatement)]

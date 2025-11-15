@@ -50,6 +50,11 @@ impl Py_AliasedTableColumnsSequence {
         };
         pyo3::Py::new(slf.py(), result).map(|x| x.into_any())
     }
+
+    fn __len__(slf: pyo3::PyRef<'_, Self>) -> usize {
+        let lock = slf.inner.lock();
+        lock.columns.len()
+    }
 }
 
 #[pyo3::pyclass(module = "rapidquery._lib", name = "AliasedTable", frozen)]

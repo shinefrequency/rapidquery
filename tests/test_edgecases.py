@@ -171,7 +171,7 @@ class TestTableDefinitionEdgeCases:
         ]
 
         table = _lib.Table("test", columns=cols)
-        col = table.get_column("id")
+        col = table.c.id
         assert col is not None
 
     def test_foreign_key_to_nonexistent_column(self):
@@ -333,32 +333,11 @@ class TestDeleteEdgeCases:
         delete = (
             _lib.Delete()
             .from_table("users")
-            .order_by(_lib.Order(_lib.Expr.col("created_at"), _lib.ORDER_DESC))
+            .order_by(_lib.Expr.col("created_at"), "asc")
         )
         sql, params = delete.build("postgresql")
         # PostgreSQL may not support this, but should build
         assert "DELETE" in sql.upper()
-
-
-class TestOrderEdgeCases:
-    """Test edge cases in ordering."""
-
-    def test_order_by_expression(self):
-        """Order by complex expression, not just column."""
-        order = _lib.Order(_lib.Expr.col("price") * _lib.Expr.col("quantity"), _lib.ORDER_DESC)
-        # Should handle complex expressions
-        assert order.target is not None
-
-    def test_null_ordering_combinations(self):
-        """All combinations of ASC/DESC with NULLS FIRST/LAST."""
-        orders = [
-            _lib.Order(_lib.Expr.col("val"), _lib.ORDER_ASC, _lib.ORDER_NULL_FIRST),
-            _lib.Order(_lib.Expr.col("val"), _lib.ORDER_ASC, _lib.ORDER_NULL_LAST),
-            _lib.Order(_lib.Expr.col("val"), _lib.ORDER_DESC, _lib.ORDER_NULL_FIRST),
-            _lib.Order(_lib.Expr.col("val"), _lib.ORDER_DESC, _lib.ORDER_NULL_LAST),
-        ]
-        for order in orders:
-            assert order.null_order in [_lib.ORDER_NULL_FIRST, _lib.ORDER_NULL_LAST]
 
 
 class TestFunctionCallEdgeCases:
@@ -374,13 +353,11 @@ class TestFunctionCallEdgeCases:
     def test_function_with_many_args(self):
         """Functions with many arguments."""
         func = _lib.FunctionCall.coalesce(
-            [
-                _lib.Expr.col("field1"),
-                _lib.Expr.col("field2"),
-                _lib.Expr.col("field3"),
-                _lib.Expr.null(),
-                _lib.Expr(0),
-            ]
+            _lib.Expr.col("field1"),
+            _lib.Expr.col("field2"),
+            _lib.Expr.col("field3"),
+            _lib.Expr.null(),
+            _lib.Expr(0),
         )
         expr = func.to_expr()
         sql = expr.to_sql("sqlite")
