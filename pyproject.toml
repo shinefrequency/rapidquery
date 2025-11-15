@@ -34,9 +34,7 @@ dynamic = [
     'readme',
     'version'
 ]
-dependencies = [
-    "pypika>=0.48.9",
-]
+dependencies = []
 
 [project.urls]
 Homepage = 'https://github.com/awolverp/rapidquery'
@@ -47,7 +45,5 @@ module-name = "rapidquery._lib"
 
 [dependency-groups]
 dev = [
-    "pytest>=8.3.5",
     "maturin>=1.9.4",
-    "pypika>=0.48.9",
 ]
