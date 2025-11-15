@@ -733,7 +733,7 @@ As you saw, it's much simpler.
 > [!NOTE]
 > Benchmarks run on *Linux-6.15.11-2-MANJARO-x86_64-with-glibc2.42* with CPython 3.13. Your results may vary.
 
-**Generating Insert Query 100,000x**
+**Generating Insert Query 100,000x times**
 ```python
 # RapidQuery
 query = rq.Select(rq.Expr.asterisk()).from_table("users").where(rq.Expr.col("name").like(r"%linus%")) \
@@ -753,7 +753,7 @@ RapidQuery: 254ms
 PyPika: 3983ms
 ```
 
-**Generating Select Query 100,000x**
+**Generating Select Query 100,000x times**
 ```python
 # RapidQuery
 query = rq.Insert().into("glyph").columns("aspect", "image") \
@@ -776,7 +776,7 @@ RapidQuery: 267ms
 PyPika: 4299ms
 ```
 
-**Generating Update Query 100,000x**
+**Generating Update Query 100,000x times**
 ```python
 # RapidQuery
 query = rq.Update().table("wallets").values(amount=rq.Expr.col("amount") + 10).where(rq.Expr.col("id").between(10, 30))
@@ -795,7 +795,7 @@ RapidQuery: 252ms
 PyPika: 4412ms
 ```
 
-**Generating Delete Query 100,000x**
+**Generating Delete Query 100,000x times**
 ```python
 # RapidQuery
 query = rq.Delete().from_table("users") \
@@ -811,9 +811,7 @@ query.to_sql('postgresql')
 
 # PyPika
 query = pypika.Query.from_("users") \
-        .where(
-            (pypika.Field("id") > 10) & (pypika.Field("id") < 30),
-        ) \
+        .where((pypika.Field("id") > 10) & (pypika.Field("id") < 30)) \
         .limit(10).delete()
 
 str(query)
