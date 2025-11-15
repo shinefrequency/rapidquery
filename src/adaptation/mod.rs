@@ -579,6 +579,80 @@ impl PyAdaptedValue {
         unsafe { pyo3::Py::from_borrowed_ptr_or_err(py, obj.as_pyobject()) }
     }
 
+    fn __hash__(&self, py: pyo3::Python<'_>) -> pyo3::PyResult<isize> {
+        let obj = unsafe {
+            let mut lock = self.inner.lock();
+            lock.deserialize(py).as_pyobject()
+        };
+
+        unsafe {
+            let hash = pyo3::ffi::PyObject_Hash(obj);
+            pyo3::ffi::Py_DECREF(obj);
+
+            if hash == -1 {
+                Err(pyo3::PyErr::fetch(py))
+            } else {
+                Ok(hash)
+            }
+        }
+    }
+
+    fn __eq__(slf: pyo3::PyRef<'_, Self>, other: pyo3::PyRef<'_, Self>) -> pyo3::PyResult<bool> {
+        if slf.as_ptr() == other.as_ptr() {
+            return Ok(true);
+        }
+
+        let mut inner1 = slf.inner.lock();
+        let mut inner2 = other.inner.lock();
+
+        if let (Some(x), Some(y)) = (&inner1.serialized, &inner2.serialized) {
+            return Ok(x == y);
+        }
+
+        unsafe {
+            let obj1 = inner1.deserialize(slf.py()).as_pyobject();
+            let obj2 = inner2.deserialize(slf.py()).as_pyobject();
+
+            let result = pyo3::ffi::PyObject_RichCompareBool(obj1, obj2, pyo3::ffi::Py_EQ);
+            pyo3::ffi::Py_DECREF(obj1);
+            pyo3::ffi::Py_DECREF(obj2);
+
+            if result == -1 {
+                Err(pyo3::PyErr::fetch(slf.py()))
+            } else {
+                Ok(result == 1)
+            }
+        }
+    }
+
+    fn __ne__(slf: pyo3::PyRef<'_, Self>, other: pyo3::PyRef<'_, Self>) -> pyo3::PyResult<bool> {
+        if slf.as_ptr() == other.as_ptr() {
+            return Ok(false);
+        }
+
+        let mut inner1 = slf.inner.lock();
+        let mut inner2 = other.inner.lock();
+
+        if let (Some(x), Some(y)) = (&inner1.serialized, &inner2.serialized) {
+            return Ok(x != y);
+        }
+
+        unsafe {
+            let obj1 = inner1.deserialize(slf.py()).as_pyobject();
+            let obj2 = inner2.deserialize(slf.py()).as_pyobject();
+
+            let result = pyo3::ffi::PyObject_RichCompareBool(obj1, obj2, pyo3::ffi::Py_EQ);
+            pyo3::ffi::Py_DECREF(obj1);
+            pyo3::ffi::Py_DECREF(obj2);
+
+            if result == -1 {
+                Err(pyo3::PyErr::fetch(slf.py()))
+            } else {
+                Ok(result == 0)
+            }
+        }
+    }
+
     fn __copy__(&self) -> Self {
         Self {
             inner: parking_lot::Mutex::new(self.inner.lock().clone()),

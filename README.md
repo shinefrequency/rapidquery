@@ -824,3 +824,6 @@ PyPika: 4556ms
 #### Performance Tips
 - Using [`ORM-like`](#orm-like) is always slower than using `Expr.col` and literal `str`
 - "Less calls, more speed"; RapidQuery powered by Rust & SeaQuery, which made us very fast, and only thing that can effect speed, is object calls in Python.
+
+## License
+This repository is licensed under the [GNU GPLv3 License](LICENSE)

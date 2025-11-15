@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum SerializedValue {
     Null,
     Bool(bool),
