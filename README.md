@@ -733,7 +733,7 @@ As you saw, it's much simpler.
 > [!NOTE]
 > Benchmarks run on *Linux-6.15.11-2-MANJARO-x86_64-with-glibc2.42* with CPython 3.13. Your results may vary.
 
-**Generating Insert Query 100,000x times**
+**Generating Select Query 100,000x times**
 ```python
 # RapidQuery
 query = rq.Select(rq.Expr.asterisk()).from_table("users").where(rq.Expr.col("name").like(r"%linus%")) \
@@ -753,7 +753,7 @@ RapidQuery: 254ms
 PyPika: 3983ms
 ```
 
-**Generating Select Query 100,000x times**
+**Generating Insert Query 100,000x times**
 ```python
 # RapidQuery
 query = rq.Insert().into("glyph").columns("aspect", "image") \
