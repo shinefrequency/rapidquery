@@ -32,8 +32,8 @@ pip3 install rapidquery
 > [!NOTE]\
 > RapidQuery requires Python 3.10+. Supports CPython and PyPy.
 
-## Supported Databases
-RapidQuery supports `PostgreSQL`, `MySQL`, and `SQLite` databases. In RapidQuery, we're calling them `backend`.
+## Backends
+RapidQuery supports `PostgreSQL`, `MySQL`, and `SQLite` databases. In RapidQuery, these are referred to as `backend`s.
 When building SQL statements, you should specify your target backend.
 
 ## Quick Example
@@ -48,7 +48,7 @@ stmt.to_sql("postgres")
 
 ## Usage
 
-1. Basics
+1. Core Concepts
     1. [**AdaptedValue**](#adaptedvalue)
     2. [**Expr**](#expr)
     3. [**Statement Builders**](#statement-builders)
@@ -67,14 +67,14 @@ stmt.to_sql("postgres")
     5. [**Table Truncate**](#table-truncate)
     8. [**Index Create**](#index-create)
     9. [**Index Drop**](#index-drop)
-5. Advanced
+5. Advanced Usage
     1. [**ORM-like**](#orm-like)
     2. [**Table Alias**](#table-alias)
 6. Performance
     1. [**Benchmarks**](#benchmarks)
     2. [**Performance Tips**](#performance-tips)
 
-### Basics
+### Core Concepts
 #### AdaptedValue
 `AdaptedValue` bridges Python types, Rust types, and SQL types for seamless data conversion.
 
@@ -107,7 +107,7 @@ rq.AdaptedValue(4.5, rq.CharType()) # -> TypeError: expected str, got float
 ```
 
 > [!TIP]\
-> **Good to know**: `AdaptedValue` is lazy. This means it keeps your value and never converts it to Rust and then SQL until needed.
+> **Important**: `AdaptedValue` is lazy. This means it keeps your value and never converts it to Rust and then SQL until needed.
 
 #### Expr
 Represents a SQL expression that can be built into SQL code.
@@ -157,9 +157,11 @@ rq.any(
 **Best Practices**
 - Always use `Expr.col()` for column references: This ensures proper quoting for your target database
 ```python
-# These are different:
-rq.Expr.col("user_name") # column reference
-rq.Expr("user_name") # literal value
+# Column reference (properly quoted identifier)
+rq.Expr.col("user_name")  # → "user_name"
+
+# String literal (value)
+rq.Expr("user_name")      # → 'user_name'
 ```
 
 - Use `rapidquery.all()` and `rapidquery.any()` for logical combinations: More readable than chaining `&` and `|` operators
@@ -427,7 +429,8 @@ expr = rq.FunctionCall.sum(rq.Expr.col("amount"))
 expr.to_sql("postgresql")   # -> SUM("amount")
 ```
 
-But maybe you wanna use a function that does not exists. Don't worry. It's very easy:
+But for functions not provided by the library, you can define custom functions.
+Custom functions can be defined using the `FunctionCall` constructor:
 
 ```python
 unknown = rq.FunctionCall("UNKNOWN").arg(rq.ASTERISK)
@@ -603,7 +606,7 @@ stmt.to_sql("postgresql")
 # DROP INDEX "ix_users_user_reseller_id"
 ```
 
-### Advanced
+### Advanced Usage
 #### ORM-like
 `Table` class is not just for generating CREATE TABLE statements. It's designed to make developing
 easier for you.
@@ -690,7 +693,7 @@ sql, params = query.build("postgresql")
 # INNER JOIN "employees" AS "mgr" ON "emp"."manager_id" = "mgr"."id"
 ```
 
-It's so hard and un-readable.
+It's so hard and unreadable.
 
 **With AliasedTable**
 ```python
@@ -722,7 +725,7 @@ sql, params = query.build("postgresql")
 # INNER JOIN "employees" AS "mgr" ON "emp"."manager_id" = "mgr"."id"
 ```
 
-As you saw, it's more simple.
+As you saw, it's much simpler.
 
 ### Performance
 #### Benchmarks
@@ -824,6 +827,24 @@ PyPika: 4556ms
 #### Performance Tips
 - Using [`ORM-like`](#orm-like) is always slower than using `Expr.col` and literal `str`
 - "Less calls, more speed"; RapidQuery powered by Rust & SeaQuery, which made us very fast, and only thing that can effect speed, is object calls in Python.
+
+## Known Issues
+### Unmanaged Rust Panic Output in Error Handling
+The library may encounter errors during SQL query construction, which are correctly raised as *RuntimeError* exceptions. For instance, this occurs when using a function that isn't supported by your target database. **While this error-raising behavior is intentional and logical, the issue is that unmanaged Rust panic information is also printed to stderr**. Currently, there is no way to suppress or manage this panic output. We are working to resolve this problem as much as possible in future updates.
+
+```python
+expr = rq.Expr.col("id").pg_contained("text")
+expr.to_sql("sqlite")
+
+thread '<unnamed>' (19535) panicked at sea-query-0.32.7/src/backend/query_builder.rs:665:22:
+not implemented
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Traceback (most recent call last):
+  File "<python-input-1>", line 1, in <module>
+    expr.to_sql("sqlite")
+    ~~~~~^^^^^^^^^^
+RuntimeError: build failed
+```
 
 ## License
 This repository is licensed under the [GNU GPLv3 License](LICENSE)
