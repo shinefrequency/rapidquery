@@ -733,94 +733,48 @@ As you saw, it's much simpler.
 > [!NOTE]
 > Benchmarks run on *Linux-6.15.11-2-MANJARO-x86_64-with-glibc2.42* with CPython 3.13. Your results may vary.
 
-**Generating Select Query 100,000x times**
-```python
-# RapidQuery
-query = rq.Select(rq.Expr.asterisk()).from_table("users").where(rq.Expr.col("name").like(r"%linus%")) \
-        .offset(20).limit(20)
+**Iterations per test:** 100,000  
+**Python version:** 3.13.7
 
-query.to_sql('postgresql')
+---
 
-# PyPika
-query = pypika.Query.from_("users").where(pypika.Field("name").like(r"%linus%")) \
-        .offset(20).limit(20).select("*")
+**📊 SELECT Query Benchmark**
 
-str(query)
-```
+| Library | Time (ms) | vs Fastest | Status |
+|---------|-----------|------------|--------|
+| RapidQuery | 247.79 | 1.00x (FASTEST) | 🏆 |
+| PyPika | 4030.62 | 16.27x slower | |
+| SQLAlchemy | 9238.36 | 37.28x slower | |
 
-```
-RapidQuery: 254ms
-PyPika: 3983ms
-```
+---
 
-**Generating Insert Query 100,000x times**
-```python
-# RapidQuery
-query = rq.Insert().into("glyph").columns("aspect", "image") \
-        .values(5.15, "12A") \
-        .values(16, "14A") \
-        .returning("id")
+**📊 INSERT Query Benchmark**
 
-query.to_sql('postgresql')
+| Library | Time (ms) | vs Fastest | Status |
+|---------|-----------|------------|--------|
+| RapidQuery | 275.13 | 1.00x (FASTEST) | 🏆 |
+| PyPika | 4268.81 | 15.52x slower | |
+| SQLAlchemy | 6849.45 | 24.90x slower | |
 
-# PyPika
-query = pypika.Query.into("glyph").columns("aspect", "image") \
-        .insert(5.15, "12A") \
-        .insert(16, "14A")
+---
 
-str(query)
-```
+**📊 UPDATE Query Benchmark**
 
-```
-RapidQuery: 267ms
-PyPika: 4299ms
-```
+| Library | Time (ms) | vs Fastest | Status |
+|---------|-----------|------------|--------|
+| RapidQuery | 270.03 | 1.00x (FASTEST) | 🏆 |
+| PyPika | 4450.08 | 16.48x slower | |
+| SQLAlchemy | 11637.68 | 43.10x slower | |
 
-**Generating Update Query 100,000x times**
-```python
-# RapidQuery
-query = rq.Update().table("wallets").values(amount=rq.Expr.col("amount") + 10).where(rq.Expr.col("id").between(10, 30))
+---
 
-query.to_sql('postgresql')
+**📊 DELETE Query Benchmark**
 
-# PyPika
-query = pypika.Query.update("wallets").set("amount", pypika.Field("amount") + 10) \
-        .where(pypika.Field("id").between(10, 30))
-
-str(query)
-```
-
-```
-RapidQuery: 252ms
-PyPika: 4412ms
-```
-
-**Generating Delete Query 100,000x times**
-```python
-# RapidQuery
-query = rq.Delete().from_table("users") \
-        .where(
-            rq.all(
-                rq.Expr.col("id") > 10,
-                rq.Expr.col("id") < 30,
-            )
-        ) \
-        .limit(10)
-
-query.to_sql('postgresql')
-
-# PyPika
-query = pypika.Query.from_("users") \
-        .where((pypika.Field("id") > 10) & (pypika.Field("id") < 30)) \
-        .limit(10).delete()
-
-str(query)
-```
-
-```
-RapidQuery: 240ms
-PyPika: 4556ms
-```
+| Library | Time (ms) | vs Fastest | Status |
+|---------|-----------|------------|--------|
+| RapidQuery | 242.09 | 1.00x (FASTEST) | 🏆 |
+| PyPika | 4154.24 | 17.16x slower | |
+| SQLAlchemy | 7873.16 | 32.52x slower | |
 
 #### Performance Tips
 - Using [`ORM-like`](#orm-like) is always slower than using `Expr.col` and literal `str`

@@ -13,12 +13,9 @@ impl Py_AliasedTableColumnsSequence {
         let col_name = unsafe {
             let lock = slf.inner.lock();
 
-            let (name, _) = lock
-                .columns
-                .iter()
-                .find(|(x, _)| x.eq(&name))
-                .ok_or_else(|| pyo3::PyErr::new::<pyo3::exceptions::PyKeyError, _>(name.to_owned()))?;
-
+            if !lock.columns.contains_key(&name) {
+                return Err(pyo3::PyErr::new::<pyo3::exceptions::PyKeyError, _>(name.to_owned()));
+            }
             sea_query::Alias::new(name)
         };
 
@@ -34,12 +31,9 @@ impl Py_AliasedTableColumnsSequence {
         let col_name = unsafe {
             let lock = slf.inner.lock();
 
-            let (name, _) = lock
-                .columns
-                .iter()
-                .find(|(x, _)| x.eq(&name))
-                .ok_or_else(|| pyo3::PyErr::new::<pyo3::exceptions::PyKeyError, _>(name.to_owned()))?;
-
+            if !lock.columns.contains_key(&name) {
+                return Err(pyo3::PyErr::new::<pyo3::exceptions::PyKeyError, _>(name.to_owned()));
+            }
             sea_query::Alias::new(name)
         };
 

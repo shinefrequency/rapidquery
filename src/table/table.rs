@@ -1,7 +1,7 @@
 use crate::backend::PySchemaStatement;
 use pyo3::types::PyAnyMethods;
 
-type ColumnsSequence = Vec<(String, pyo3::Py<pyo3::PyAny>)>;
+type ColumnsSequence = indexmap::IndexMap<String, pyo3::Py<pyo3::PyAny>>;
 
 pub struct TableInner {
     // Always is `TableName`
@@ -127,9 +127,8 @@ impl Py_TableColumnsSequence {
         let lock = slf.inner.lock();
 
         lock.columns
-            .iter()
-            .find(|(x, _)| x.eq(&name))
-            .map(|(_, x)| x.clone_ref(slf.py()))
+            .get(&name)
+            .map(|x| x.clone_ref(slf.py()))
             .ok_or_else(|| pyo3::PyErr::new::<pyo3::exceptions::PyKeyError, _>(name.to_owned()))
     }
 
@@ -137,9 +136,8 @@ impl Py_TableColumnsSequence {
         let lock = slf.inner.lock();
 
         lock.columns
-            .iter()
-            .find(|(x, _)| x.eq(&name))
-            .map(|(_, x)| x.clone_ref(slf.py()))
+            .get(&name)
+            .map(|x| x.clone_ref(slf.py()))
             .ok_or_else(|| pyo3::PyErr::new::<pyo3::exceptions::PyKeyError, _>(name.to_owned()))
     }
 
@@ -159,7 +157,7 @@ impl Py_TableColumnsSequence {
             let name = colobj.name.clone();
             drop(colobj);
 
-            lock.columns.push((name, col.unbind()));
+            lock.columns.insert(name, col.unbind());
         }
 
         Ok(())
@@ -168,13 +166,9 @@ impl Py_TableColumnsSequence {
     fn remove(slf: pyo3::PyRef<'_, Self>, name: String) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
         let mut lock = slf.inner.lock();
 
-        let position = lock
-            .columns
-            .iter()
-            .position(|(x, _)| x.eq(&name))
+        let x = lock.columns.shift_remove(&name)
             .ok_or_else(|| pyo3::PyErr::new::<pyo3::exceptions::PyKeyError, _>(name.to_owned()))?;
-
-        let (_, x) = lock.columns.remove(position);
+  
         Ok(x.clone_ref(slf.py()))
     }
 
@@ -252,7 +246,7 @@ impl PyTable {
                 let name = colobj.name.clone();
                 drop(colobj);
 
-                cols.push((name, col));
+                cols.insert(name, col);
             }
         }
 

@@ -38,6 +38,7 @@ chrono = { version = "0.4.27", default-features = false, features = ["clock"] }
 serde_json = { version = "1", default-features = false, features = ["std"] }
 rust_decimal = { version = "1.38.0", default-features = false }
 once_cell = { version = "1.21.3", default-features = false, features = ["parking_lot"]}
+indexmap = { version = "2.12.0", default-features = false, features = ["std"]}
 
 [dependencies.parking_lot]
 version = "0.12.4"
