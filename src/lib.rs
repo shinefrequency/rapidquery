@@ -89,6 +89,9 @@ mod _lib {
     #[pymodule_export]
     use super::query::on_conflict::PyOnConflict;
 
+    #[pymodule_export]
+    use super::query::case::PyCase;
+
     #[pymodule_init]
     fn init(m: &pyo3::Bound<'_, pyo3::types::PyModule>) -> pyo3::PyResult<()> {
         m.add("INTERVAL_YEAR", sea_query::PgInterval::Year as u8)?;

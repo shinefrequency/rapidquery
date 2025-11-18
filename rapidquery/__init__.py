@@ -25,6 +25,7 @@ from ._lib import BinaryType as BinaryType
 from ._lib import BitType as BitType
 from ._lib import BlobType as BlobType
 from ._lib import BooleanType as BooleanType
+from ._lib import Case as Case
 from ._lib import CharType as CharType
 from ._lib import CidrType as CidrType
 from ._lib import Column as Column

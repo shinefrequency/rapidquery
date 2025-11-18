@@ -756,6 +756,7 @@ _ExprValue = typing.Union[
     _AsteriskType,
     typing.Any,
     Select,
+    Case,
 ]
 
 class Expr:
@@ -812,19 +813,6 @@ class Expr:
 
         Returns:
             An Expr representing the adapted value
-        """
-        ...
-
-    @classmethod
-    def func(cls, value: FunctionCall) -> Self:
-        """
-        Create an expression from a FunctionCall.
-
-        Args:
-            value: The function call to convert to an expression
-
-        Returns:
-            An Expr representing the function call
         """
         ...
 
@@ -3556,4 +3544,12 @@ class Select(QueryStatement):
         """
         ...
 
+    def __repr__(self) -> str: ...
+
+
+class Case:
+    def __new__(cls) -> Self: ...
+    def when(self, cond: _ExprValue, then: _ExprValue) -> Self: ...
+    def else_(self, expr: _ExprValue) -> Self: ...
+    def to_expr(self) -> Expr: ...
     def __repr__(self) -> str: ...

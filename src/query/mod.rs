@@ -5,3 +5,4 @@ pub mod order;
 pub mod returning;
 pub mod select;
 pub mod update;
+pub mod case;

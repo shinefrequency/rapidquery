@@ -558,3 +558,13 @@ class TestWhereChaining:
         query = _lib.Update().table("users").where(_lib.Expr.col("id") > 10).where(_lib.Expr.col("id") < 20)
 
         assert "AND" in query.to_sql("postgresql")
+
+
+class TestCase:
+    def test_to_expr(self):
+        query = _lib.Case().when(
+            _lib.Case().when(_lib.Expr.col("id") == 1, True).else_(False),
+            True
+        ).else_(False)
+
+        assert query.to_expr().to_sql("postgresql").count("CASE") == 2
