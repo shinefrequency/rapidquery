@@ -7,9 +7,6 @@
 #![feature(likely_unlikely)]
 #![feature(optimize_attribute)]
 
-// TODO: Use [`pyo3::Bound`] instead of [`Vec<T>`] arguments
-// to improve performance
-
 /// Helper macros and some utilitize functions
 #[macro_use]
 mod macros;
