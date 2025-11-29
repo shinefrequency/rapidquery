@@ -3238,7 +3238,6 @@ class Update(QueryStatement):
 
     def __repr__(self) -> str: ...
 
-
 class WindowFrame:
     @classmethod
     def unbounded_preceding(cls) -> Self: ...
@@ -3267,7 +3266,6 @@ class Window:
         end: typing.Optional[WindowFrame] = None,
     ) -> Self: ...
 
-
 class SelectCol:
     """
     Represents a column expression with an optional alias in a SELECT clause.
@@ -3281,7 +3279,12 @@ class SelectCol:
         >>> SelectCol(Expr.count(), "total_count")
     """
 
-    def __new__(cls, expr: _ExprValue, alias: typing.Optional[str] = ..., window: typing.Union[str, Window, None] = ...):
+    def __new__(
+        cls,
+        expr: _ExprValue,
+        alias: typing.Optional[str] = ...,
+        window: typing.Union[str, Window, None] = ...,
+    ):
         """
         Create a new SelectCol.
 
@@ -3305,9 +3308,7 @@ class SelectCol:
         ...
 
     @property
-    def window(self) -> typing.Union[str, Window, None]:
-        ...
-
+    def window(self) -> typing.Union[str, Window, None]: ...
     def __repr__(self) -> str: ...
 
 class Select(QueryStatement):

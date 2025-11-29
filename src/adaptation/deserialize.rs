@@ -1,7 +1,7 @@
 use std::ptr::NonNull;
 
 #[derive(Debug, Default)]
-pub enum DeserializedValue {
+pub enum PythonValue {
     #[default]
     Null,
     Bool(bool),
@@ -19,11 +19,11 @@ pub enum DeserializedValue {
     ),
     Uuid(NonNull<pyo3::ffi::PyObject>),
     Decimal(NonNull<pyo3::ffi::PyObject>),
-    Array(Vec<DeserializedValue>),
+    Array(Vec<PythonValue>),
     Vector(NonNull<pyo3::ffi::PyObject>),
 }
 
-impl Clone for DeserializedValue {
+impl Clone for PythonValue {
     fn clone(&self) -> Self {
         unsafe {
             match self {
@@ -74,7 +74,7 @@ impl Clone for DeserializedValue {
     }
 }
 
-impl Drop for DeserializedValue {
+impl Drop for PythonValue {
     fn drop(&mut self) {
         unsafe {
             match self {
@@ -98,7 +98,7 @@ impl Drop for DeserializedValue {
     }
 }
 
-impl DeserializedValue {
+impl PythonValue {
     pub unsafe fn as_pyobject(&self) -> *mut pyo3::ffi::PyObject {
         match self {
             Self::Null => pyo3::ffi::Py_None(),
@@ -174,16 +174,16 @@ impl DeserializedValue {
         }
     }
 
-    pub fn serialize(&self, py: pyo3::Python<'_>) -> pyo3::PyResult<super::serialize::SerializedValue> {
+    pub fn serialize(&self, py: pyo3::Python<'_>) -> pyo3::PyResult<super::serialize::RustValue> {
         use pyo3::types::PyAnyMethods;
 
         unsafe {
             match self {
-                Self::Null => Ok(super::serialize::SerializedValue::Null),
-                Self::Bool(op) => Ok(super::serialize::SerializedValue::Bool(*op)),
-                Self::BigInt(op) => Ok(super::serialize::SerializedValue::BigInt(*op)),
-                Self::BigUnsigned(op) => Ok(super::serialize::SerializedValue::BigUnsigned(*op)),
-                Self::Double(op) => Ok(super::serialize::SerializedValue::Double(*op)),
+                Self::Null => Ok(super::serialize::RustValue::Null),
+                Self::Bool(op) => Ok(super::serialize::RustValue::Bool(*op)),
+                Self::BigInt(op) => Ok(super::serialize::RustValue::BigInt(*op)),
+                Self::BigUnsigned(op) => Ok(super::serialize::RustValue::BigUnsigned(*op)),
+                Self::Double(op) => Ok(super::serialize::RustValue::Double(*op)),
                 Self::String(op) => {
                     let mut size: pyo3::ffi::Py_ssize_t = 0;
                     let c_str = pyo3::ffi::PyUnicode_AsUTF8AndSize(op.as_ptr(), &mut size);
@@ -192,14 +192,14 @@ impl DeserializedValue {
                         Err(pyo3::PyErr::fetch(py))
                     } else {
                         let val = std::ffi::CStr::from_ptr(c_str);
-                        Ok(super::serialize::SerializedValue::String(val.to_bytes().to_vec()))
+                        Ok(super::serialize::RustValue::String(val.to_bytes().to_vec()))
                     }
                 }
                 Self::Bytes(op) => {
                     let bytes =
                         pyo3::Py::<pyo3::PyAny>::from_borrowed_ptr(py, op.as_ptr()).extract::<Vec<u8>>(py)?;
 
-                    Ok(super::serialize::SerializedValue::Bytes(bytes))
+                    Ok(super::serialize::RustValue::Bytes(bytes))
                 }
                 Self::Json(op) => {
                     let serialized = super::common::_serialize_object_with_pyjson(py, op.as_ptr())?;
@@ -220,20 +220,20 @@ impl DeserializedValue {
                             pyo3::PyErr::new::<pyo3::exceptions::PyValueError, _>(x.to_string())
                         })?;
 
-                        Ok(super::serialize::SerializedValue::Json(val))
+                        Ok(super::serialize::RustValue::Json(val))
                     }
                 }
                 Self::ChronoDate(op) => {
                     let val: pyo3::Bound<'_, pyo3::types::PyDate> =
                         pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).cast_into()?;
 
-                    Ok(super::serialize::SerializedValue::ChronoDate(val.extract()?))
+                    Ok(super::serialize::RustValue::ChronoDate(val.extract()?))
                 }
                 Self::ChronoTime(op) => {
                     let val: pyo3::Bound<'_, pyo3::types::PyTime> =
                         pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).cast_into()?;
 
-                    Ok(super::serialize::SerializedValue::ChronoTime(val.extract()?))
+                    Ok(super::serialize::RustValue::ChronoTime(val.extract()?))
                 }
                 Self::ChronoDateTime(op) => {
                     let val: pyo3::Bound<'_, pyo3::types::PyDateTime> =
@@ -245,9 +245,9 @@ impl DeserializedValue {
                     debug_assert!(!tzinfo.is_null());
 
                     if pyo3::ffi::Py_IsNone(tzinfo) == 1 {
-                        Ok(super::serialize::SerializedValue::ChronoDateTime(val.extract()?))
+                        Ok(super::serialize::RustValue::ChronoDateTime(val.extract()?))
                     } else {
-                        Ok(super::serialize::SerializedValue::ChronoDateTimeWithTimeZone(
+                        Ok(super::serialize::RustValue::ChronoDateTimeWithTimeZone(
                             val.extract()?,
                         ))
                     }
@@ -255,23 +255,23 @@ impl DeserializedValue {
                 Self::Uuid(op) => {
                     let val: uuid::Uuid = pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).extract()?;
 
-                    Ok(super::serialize::SerializedValue::Uuid(val))
+                    Ok(super::serialize::RustValue::Uuid(val))
                 }
                 Self::Decimal(op) => {
                     let val: rust_decimal::Decimal =
                         pyo3::Bound::from_borrowed_ptr(py, op.as_ptr()).extract()?;
 
-                    Ok(super::serialize::SerializedValue::Decimal(val))
+                    Ok(super::serialize::RustValue::Decimal(val))
                 }
                 Self::Array(op) => {
-                    let mut values: Vec<super::serialize::SerializedValue> = Vec::with_capacity(op.len());
+                    let mut values: Vec<super::serialize::RustValue> = Vec::with_capacity(op.len());
 
                     for item in op {
                         let item = item.serialize(py)?;
                         values.push(item);
                     }
 
-                    Ok(super::serialize::SerializedValue::Array(values))
+                    Ok(super::serialize::RustValue::Array(values))
                 }
                 Self::Vector(op) => {
                     let mut values: Vec<f32> = Vec::new();
@@ -282,7 +282,7 @@ impl DeserializedValue {
                         values.push(item.extract::<f32>()?);
                     }
 
-                    Ok(super::serialize::SerializedValue::Vector(values))
+                    Ok(super::serialize::RustValue::Vector(values))
                 }
             }
         }

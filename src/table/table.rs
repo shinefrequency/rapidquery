@@ -6,7 +6,7 @@ type ColumnsSequence = indexmap::IndexMap<String, pyo3::Py<pyo3::PyAny>>;
 pub struct TableInner {
     // Always is `TableName`
     pub name: pyo3::Py<pyo3::PyAny>,
-    
+
     // Always is `ColumnsSequence<String, Column>`
     pub columns: ColumnsSequence,
 

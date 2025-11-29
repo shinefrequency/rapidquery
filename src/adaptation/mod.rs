@@ -5,21 +5,21 @@ mod common;
 mod deserialize;
 mod serialize;
 
-pub use deserialize::DeserializedValue;
-pub use serialize::SerializedValue;
+pub use deserialize::PythonValue;
+pub use serialize::RustValue;
 
 /// A bridge between Python & [`sea_query::Value`]
 #[derive(Debug, Clone)]
 pub struct ReturnableValue {
-    deserialized: Option<DeserializedValue>,
-    serialized: Option<SerializedValue>,
+    deserialized: Option<PythonValue>,
+    serialized: Option<RustValue>,
 }
 
 unsafe impl Send for ReturnableValue {}
 
-impl From<DeserializedValue> for ReturnableValue {
+impl From<PythonValue> for ReturnableValue {
     #[inline]
-    fn from(value: DeserializedValue) -> Self {
+    fn from(value: PythonValue) -> Self {
         Self {
             deserialized: Some(value),
             serialized: None,
@@ -27,9 +27,9 @@ impl From<DeserializedValue> for ReturnableValue {
     }
 }
 
-impl From<SerializedValue> for ReturnableValue {
+impl From<RustValue> for ReturnableValue {
     #[inline]
-    fn from(value: SerializedValue) -> Self {
+    fn from(value: RustValue) -> Self {
         Self {
             deserialized: None,
             serialized: Some(value),
@@ -52,7 +52,7 @@ impl ReturnableValue {
                     return Err(typeerror!("expected bool, got {}", object.py(), object.as_ptr()));
                 }
 
-                Ok(Self::from(DeserializedValue::Bool(
+                Ok(Self::from(PythonValue::Bool(
                     pyo3::ffi::Py_True() == object.as_ptr(),
                 )))
             },
@@ -66,7 +66,7 @@ impl ReturnableValue {
                     return Err(pyo3::PyErr::fetch(object.py()));
                 }
 
-                Ok(Self::from(DeserializedValue::BigInt(val)))
+                Ok(Self::from(PythonValue::BigInt(val)))
             },
             sea_query::ColumnType::TinyUnsigned
             | sea_query::ColumnType::SmallUnsigned
@@ -77,7 +77,7 @@ impl ReturnableValue {
                     return Err(pyo3::PyErr::fetch(object.py()));
                 }
 
-                Ok(Self::from(DeserializedValue::BigUnsigned(val)))
+                Ok(Self::from(PythonValue::BigUnsigned(val)))
             },
             sea_query::ColumnType::Char(_)
             | sea_query::ColumnType::String(_)
@@ -91,7 +91,7 @@ impl ReturnableValue {
                     return Err(typeerror!("expected str, got {}", object.py(), object.as_ptr()));
                 }
 
-                Ok(Self::from(DeserializedValue::String(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::String(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))))
             },
@@ -104,7 +104,7 @@ impl ReturnableValue {
                     return Err(typeerror!("expected bytes, got {}", object.py(), object.as_ptr()));
                 }
 
-                Ok(Self::from(DeserializedValue::Bytes(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::Bytes(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))))
             },
@@ -114,7 +114,7 @@ impl ReturnableValue {
                     return Err(pyo3::PyErr::fetch(object.py()));
                 }
 
-                Ok(Self::from(DeserializedValue::Double(val)))
+                Ok(Self::from(PythonValue::Double(val)))
             },
             sea_query::ColumnType::Decimal(_) | sea_query::ColumnType::Money(_) => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DECIMAL_TYPE) == 0 {
@@ -125,7 +125,7 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(DeserializedValue::Decimal(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::Decimal(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))))
             },
@@ -138,7 +138,7 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(DeserializedValue::ChronoDateTime(
+                Ok(Self::from(PythonValue::ChronoDateTime(
                     NonNull::new_unchecked(object.into_ptr()),
                 )))
             },
@@ -151,7 +151,7 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(DeserializedValue::ChronoDateTime(
+                Ok(Self::from(PythonValue::ChronoDateTime(
                     NonNull::new_unchecked(object.into_ptr()),
                 )))
             },
@@ -164,7 +164,7 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(DeserializedValue::ChronoTime(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::ChronoTime(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))))
             },
@@ -177,14 +177,14 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(DeserializedValue::ChronoDate(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::ChronoDate(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))))
             },
             sea_query::ColumnType::Json | sea_query::ColumnType::JsonBinary => unsafe {
                 common::_validate_json_object(object.py(), object.as_ptr())?;
 
-                Ok(Self::from(DeserializedValue::Json(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::Json(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))))
             },
@@ -197,7 +197,7 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(DeserializedValue::Uuid(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::Uuid(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))))
             },
@@ -208,7 +208,7 @@ impl ReturnableValue {
                     return Err(typeerror!("expected str, got {}", object.py(), object.as_ptr()));
                 }
 
-                Ok(Self::from(DeserializedValue::String(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::String(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))))
             },
@@ -227,7 +227,7 @@ impl ReturnableValue {
                     values.push(x.deserialized.unwrap());
                 }
 
-                Ok(Self::from(DeserializedValue::Array(values)))
+                Ok(Self::from(PythonValue::Array(values)))
             },
             sea_query::ColumnType::Vector(_) => unsafe {
                 use pyo3::types::PyListMethods;
@@ -252,7 +252,7 @@ impl ReturnableValue {
                     }
                 }
 
-                Ok(Self::from(DeserializedValue::Vector(NonNull::new_unchecked(
+                Ok(Self::from(PythonValue::Vector(NonNull::new_unchecked(
                     list.into_ptr(),
                 ))))
             },
@@ -275,19 +275,19 @@ impl ReturnableValue {
             }
 
             if pyo3::ffi::PyUnicode_CheckExact(object.as_ptr()) == 1 {
-                return Ok(Self::from(DeserializedValue::String(NonNull::new_unchecked(
+                return Ok(Self::from(PythonValue::String(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))));
             }
 
             if pyo3::ffi::PyBool_Check(object.as_ptr()) == 1 {
-                return Ok(Self::from(DeserializedValue::Bool(
+                return Ok(Self::from(PythonValue::Bool(
                     pyo3::ffi::Py_True() == object.as_ptr(),
                 )));
             }
 
             if pyo3::ffi::PyBytes_CheckExact(object.as_ptr()) == 1 {
-                return Ok(Self::from(DeserializedValue::Bytes(NonNull::new_unchecked(
+                return Ok(Self::from(PythonValue::Bytes(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))));
             }
@@ -297,37 +297,37 @@ impl ReturnableValue {
             {
                 common::_validate_json_object(object.py(), object.as_ptr())?;
 
-                return Ok(Self::from(DeserializedValue::Json(NonNull::new_unchecked(
+                return Ok(Self::from(PythonValue::Json(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))));
             }
 
             if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_DECIMAL_TYPE {
-                return Ok(Self::from(DeserializedValue::Decimal(NonNull::new_unchecked(
+                return Ok(Self::from(PythonValue::Decimal(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))));
             }
 
             if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_DATETIME_TYPE {
-                return Ok(Self::from(DeserializedValue::ChronoDateTime(
+                return Ok(Self::from(PythonValue::ChronoDateTime(
                     NonNull::new_unchecked(object.into_ptr()),
                 )));
             }
 
             if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_DATE_TYPE {
-                return Ok(Self::from(DeserializedValue::ChronoDate(NonNull::new_unchecked(
+                return Ok(Self::from(PythonValue::ChronoDate(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))));
             }
 
             if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_TIME_TYPE {
-                return Ok(Self::from(DeserializedValue::ChronoTime(NonNull::new_unchecked(
+                return Ok(Self::from(PythonValue::ChronoTime(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))));
             }
 
             if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_UUID_TYPE {
-                return Ok(Self::from(DeserializedValue::Uuid(NonNull::new_unchecked(
+                return Ok(Self::from(PythonValue::Uuid(NonNull::new_unchecked(
                     object.into_ptr(),
                 ))));
             }
@@ -347,8 +347,8 @@ impl ReturnableValue {
         unsafe {
             if pyo3::ffi::Py_IsNone(object.as_ptr()) == 1 {
                 return Ok(Self {
-                    deserialized: Some(DeserializedValue::Null),
-                    serialized: Some(SerializedValue::Null),
+                    deserialized: Some(PythonValue::Null),
+                    serialized: Some(RustValue::Null),
                 });
             }
         }
@@ -369,7 +369,7 @@ impl ReturnableValue {
     }
 
     #[inline]
-    pub fn serialize(&mut self, py: pyo3::Python<'_>) -> &SerializedValue {
+    pub fn serialize(&mut self, py: pyo3::Python<'_>) -> &RustValue {
         unsafe {
             if self.serialized.is_none() {
                 self.serialized = Some(
@@ -386,7 +386,7 @@ impl ReturnableValue {
     }
 
     #[inline]
-    pub fn deserialize(&mut self, py: pyo3::Python<'_>) -> &DeserializedValue {
+    pub fn deserialize(&mut self, py: pyo3::Python<'_>) -> &PythonValue {
         unsafe {
             if self.deserialized.is_none() {
                 self.deserialized = Some(
@@ -453,8 +453,8 @@ impl PyAdaptedValue {
     fn is_null(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Null))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Null))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Null))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Null))
     }
 
     #[getter]
@@ -463,10 +463,10 @@ impl PyAdaptedValue {
 
         matches!(
             lock.deserialized.as_ref(),
-            Some(DeserializedValue::BigInt(_)) | Some(DeserializedValue::BigUnsigned(_))
+            Some(PythonValue::BigInt(_)) | Some(PythonValue::BigUnsigned(_))
         ) || matches!(
             lock.serialized.as_ref(),
-            Some(SerializedValue::BigInt(_)) | Some(SerializedValue::BigUnsigned(_))
+            Some(RustValue::BigInt(_)) | Some(RustValue::BigUnsigned(_))
         )
     }
 
@@ -474,32 +474,32 @@ impl PyAdaptedValue {
     fn is_float(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Double(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Double(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Double(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Double(_)))
     }
 
     #[getter]
     fn is_boolean(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Bool(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Bool(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Bool(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Bool(_)))
     }
 
     #[getter]
     fn is_string(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::String(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::String(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::String(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::String(_)))
     }
 
     #[getter]
     fn is_date(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::ChronoDate(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::ChronoDate(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::ChronoDate(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::ChronoDate(_)))
     }
 
     #[getter]
@@ -508,10 +508,10 @@ impl PyAdaptedValue {
 
         matches!(
             lock.deserialized.as_ref(),
-            Some(DeserializedValue::ChronoDateTime(_))
+            Some(PythonValue::ChronoDateTime(_))
         ) || matches!(
             lock.serialized.as_ref(),
-            Some(SerializedValue::ChronoDateTime(_)) | Some(SerializedValue::ChronoDateTimeWithTimeZone(_))
+            Some(RustValue::ChronoDateTime(_)) | Some(RustValue::ChronoDateTimeWithTimeZone(_))
         )
     }
 
@@ -519,56 +519,56 @@ impl PyAdaptedValue {
     fn is_time(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::ChronoTime(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::ChronoTime(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::ChronoTime(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::ChronoTime(_)))
     }
 
     #[getter]
     fn is_uuid(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Uuid(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Uuid(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Uuid(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Uuid(_)))
     }
 
     #[getter]
     fn is_bytes(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Bytes(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Bytes(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Bytes(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Bytes(_)))
     }
 
     #[getter]
     fn is_json(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Json(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Json(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Json(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Json(_)))
     }
 
     #[getter]
     fn is_decimal(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Decimal(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Decimal(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Decimal(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Decimal(_)))
     }
 
     #[getter]
     fn is_array(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Array(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Array(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Array(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Array(_)))
     }
 
     #[getter]
     fn is_vector(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(lock.deserialized.as_ref(), Some(DeserializedValue::Vector(_)))
-            || matches!(lock.serialized.as_ref(), Some(SerializedValue::Vector(_)))
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::Vector(_)))
+            || matches!(lock.serialized.as_ref(), Some(RustValue::Vector(_)))
     }
 
     #[getter]

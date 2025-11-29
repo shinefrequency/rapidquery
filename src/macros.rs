@@ -100,7 +100,7 @@ macro_rules! build_query_parts {
         let values = {
             values
                 .into_iter()
-                .map(|x| $crate::adaptation::SerializedValue::from(x))
+                .map(|x| $crate::adaptation::RustValue::from(x))
                 .map(|x| $crate::adaptation::ReturnableValue::from(x))
                 .map(|x| $crate::adaptation::PyAdaptedValue::from(x))
         };
