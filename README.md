@@ -70,6 +70,7 @@ stmt.to_sql("postgres")
 5. Advanced Usage
     1. [**ORM-like**](#orm-like)
     2. [**Table Alias**](#table-alias)
+    2. [**Complex Examples**](#complex-examples)
 6. Performance
     1. [**Benchmarks**](#benchmarks)
     2. [**Performance Tips**](#performance-tips)
@@ -260,55 +261,13 @@ sql, params = query.build("postgresql")
 
 query = (
     rq.Select(
-        rq.SelectExpr(rq.FunctionCall.count(rq.ASTERISK), alias="total_customers"),
-        rq.SelectExpr(rq.FunctionCall.avg(rq.Expr.col("age")), alias="average_age"),
+        rq.SelectCol(rq.FunctionCall.count(rq.ASTERISK), alias="total_customers"),
+        rq.SelectCol(rq.FunctionCall.avg(rq.Expr.col("age")), alias="average_age"),
     )
         .from_table("customers")
 )
 sql, params = query.build("postgresql")
 # -> SELECT COUNT(*) AS "total_customers", AVG("age") AS "average_age" FROM "customers"
-```
-
-**Complex**
-```python
-# This query would be easier to create by using `AliasedTable` class,
-# which introduced in "Advanced" part of this page
-query = (
-    rq.Select(
-        rq.Expr.col("c.customer_name"),
-        rq.SelectExpr(
-            rq.FunctionCall.count(rq.Expr.col("o.order_id")),
-            "total_orders"
-        ),
-        rq.SelectExpr(
-            rq.FunctionCall.sum(rq.Expr.col("oi.quantity") * rq.Expr.col("oi.unit_price")),
-            "total_spent"
-        ),
-    )
-        .from_table(rq.TableName("customers", alias="c"))
-        .join(
-            rq.TableName("orders", alias="o"),
-            rq.Expr.col("c.customer_id") == rq.Expr.col("o.customer_id"),
-            type="left"
-        )
-        .join(
-            rq.TableName("order_items", alias="oi"),
-            rq.Expr.col("o.order_id") == rq.Expr.col("oi.order_id"),
-            type="left"
-        )
-        .where(
-            rq.Expr.col("o.order_date") >= (datetime.datetime.now() - datetime.timedelta(days=360))
-        )
-)
-sql, params = query.build("postgresql")
-# SELECT
-#   "c"."customer_name",
-#   COUNT("o"."order_id") AS "total_orders",
-#   SUM("oi"."quantity" * "oi"."unit_price") AS "total_spent"
-# FROM "customers" AS "c"
-# LEFT JOIN "orders" AS "o" ON "c"."customer_id" = "o"."customer_id"
-# LEFT JOIN "order_items" AS "oi" ON "o"."order_id" = "oi"."order_id"
-# WHERE "o"."order_date" >= $1
 ```
 
 #### Query Insert
@@ -364,7 +323,7 @@ query = (
 )
 sql, params = query.build("postgresql")
 # INSERT INTO "users" ("username", "role") VALUES ($1, $2)
-# ON CONFLICT ("id") DO UPDATE SET "author" = $3
+# ON CONFLICT ("id") DO UPDATE SET "role" = $3
 ```
 
 #### Query Update
@@ -660,17 +619,17 @@ employees = rq.Table(
 query = (
     rq.Select(
         employees.c.id.to_column_ref().copy_with(table="emp"),
-        rq.SelectExpr(
+        rq.SelectCol(
             employees.c.name.to_column_ref().copy_with(table="emp"),
             "employee_name",
         ),
         employees.c.job_title.to_column_ref().copy_with(table="emp"),
-        rq.SelectExpr(employees.c.id.to_column_ref().copy_with(table="mgr"), "manager_id"),
-        rq.SelectExpr(
+        rq.SelectCol(employees.c.id.to_column_ref().copy_with(table="mgr"), "manager_id"),
+        rq.SelectCol(
             employees.c.name.to_column_ref().copy_with(table="mgr"),
             "employee_name",
         ),
-        rq.SelectExpr(
+        rq.SelectCol(
             employees.c.job_title.to_column_ref().copy_with(table="mgr"), "manager_title"
         ),
     )
@@ -703,11 +662,11 @@ mgr = rq.AliasedTable(employees, "mgr")
 query = (
     rq.Select(
         emp.c.id,
-        rq.SelectExpr(emp.c.name, "employee_name"),
+        rq.SelectCol(emp.c.name, "employee_name"),
         emp.c.job_title,
-        rq.SelectExpr(emp.c.id, "manager_id"),
-        rq.SelectExpr(emp.c.name, "employee_name"),
-        rq.SelectExpr(emp.c.job_title, "manager_title"),
+        rq.SelectCol(emp.c.id, "manager_id"),
+        rq.SelectCol(emp.c.name, "employee_name"),
+        rq.SelectCol(emp.c.job_title, "manager_title"),
     )
     .from_table(emp)
     .join(
@@ -727,100 +686,132 @@ sql, params = query.build("postgresql")
 
 As you saw, it's much simpler.
 
+
+#### Complex Examples
+There are some complex examples for `SELECT` query.
+
+RapidQuery:
+```python
+rq.Select(
+    rq.Expr.col("account_number"),
+    rq.Expr.col("transaction_date"),
+    rq.Expr.col("transaction_type"),
+    rq.Expr.col("amount"),
+    rq.SelectCol(
+        rq.Case()
+        .when(rq.Expr.col("transaction_type") == "DEBIT", -rq.Expr.col("amount"))
+        .else_(rq.Expr.col("amount")),
+        alias="signed_amount",
+    ),
+    rq.SelectCol(
+        rq.FunctionCall.sum(
+            rq.Case()
+            .when(rq.Expr.col("transaction_type") == "DEBIT", -rq.Expr.col("amount"))
+            .else_(rq.Expr.col("amount"))
+        ),
+        alias="running_balance",
+        window="account_window",
+    ),
+    rq.SelectCol(
+        rq.FunctionCall.avg(rq.Expr.col("amount")),
+        alias="avg_transaction_by_type",
+        window=rq.Window(rq.Expr.col("account_number"), rq.Expr.col("transaction_type")),
+    ),
+    rq.SelectCol(
+        rq.FunctionCall.percent_rank(),
+        alias="amount_percentile",
+        window=rq.Window(rq.Expr.col("account_number")).order_by(rq.Expr.col("amount"), "desc"),
+    ),
+)
+.from_table("bank_transactions")
+.where(
+    rq.Expr.col("transaction_date").between(
+        rq.Expr.custom("'2024-01-01'"), rq.Expr.custom("'2024-12-31'")
+    )
+)
+.window(
+    "account_window",
+    rq.Window(rq.Expr.col("account_number"))
+    .order_by(rq.Expr.col("transaction_date"), "desc")
+    .order_by(rq.Expr.col("transaction_id"), "desc")
+    .frame("rows", rq.WindowFrame.unbounded_preceding(), rq.WindowFrame.current_row()),
+)
+```
+
+SQL:
+```sql
+SELECT 
+    "account_number",
+    "transaction_date",
+    "transaction_type",
+    "amount",
+    (CASE WHEN ("transaction_type" = 'DEBIT') THEN "amount" * -1 ELSE "amount" END) AS "signed_amount",
+    SUM(
+        (CASE WHEN ("transaction_type" = 'DEBIT') THEN "amount" * -1 ELSE "amount" END)
+    ) OVER "account_window" AS "running_balance",
+    AVG("amount") OVER (PARTITION BY "account_number", "transaction_type") AS "avg_transaction_by_type",
+    PERCENT_RANK() OVER (
+        PARTITION BY "account_number" ORDER BY "amount" DESC
+    ) AS "amount_percentile"
+FROM "bank_transactions"
+WHERE
+    "transaction_date" BETWEEN ('2024-01-01') AND ('2024-12-31')
+WINDOW
+    "account_window" AS (
+        PARTITION BY "account_number"
+        ORDER BY "transaction_date" DESC, "transaction_id" DESC
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    )
+```
+
 ### Performance
 #### Benchmarks
 
 > [!NOTE]
 > Benchmarks run on *Linux-6.15.11-2-MANJARO-x86_64-with-glibc2.42* with CPython 3.13. Your results may vary.
 
-**Generating Select Query 100,000x times**
-```python
-# RapidQuery
-query = rq.Select(rq.Expr.asterisk()).from_table("users").where(rq.Expr.col("name").like(r"%linus%")) \
-        .offset(20).limit(20)
+**Iterations per test:** 100,000  
+**Python version:** 3.13.7
 
-query.to_sql('postgresql')
+---
 
-# PyPika
-query = pypika.Query.from_("users").where(pypika.Field("name").like(r"%linus%")) \
-        .offset(20).limit(20).select("*")
+**📊 SELECT Query Benchmark**
 
-str(query)
-```
+| Library | Time (ms) | vs Fastest | Status |
+|---------|-----------|------------|--------|
+| RapidQuery | 247.79 | 1.00x (FASTEST) | 🏆 |
+| PyPika | 4030.62 | 16.27x slower | |
+| SQLAlchemy | 9238.36 | 37.28x slower | |
 
-```
-RapidQuery: 254ms
-PyPika: 3983ms
-```
+---
 
-**Generating Insert Query 100,000x times**
-```python
-# RapidQuery
-query = rq.Insert().into("glyph").columns("aspect", "image") \
-        .values(5.15, "12A") \
-        .values(16, "14A") \
-        .returning("id")
+**📊 INSERT Query Benchmark**
 
-query.to_sql('postgresql')
+| Library | Time (ms) | vs Fastest | Status |
+|---------|-----------|------------|--------|
+| RapidQuery | 275.13 | 1.00x (FASTEST) | 🏆 |
+| PyPika | 4268.81 | 15.52x slower | |
+| SQLAlchemy | 6849.45 | 24.90x slower | |
 
-# PyPika
-query = pypika.Query.into("glyph").columns("aspect", "image") \
-        .insert(5.15, "12A") \
-        .insert(16, "14A")
+---
 
-str(query)
-```
+**📊 UPDATE Query Benchmark**
 
-```
-RapidQuery: 267ms
-PyPika: 4299ms
-```
+| Library | Time (ms) | vs Fastest | Status |
+|---------|-----------|------------|--------|
+| RapidQuery | 270.03 | 1.00x (FASTEST) | 🏆 |
+| PyPika | 4450.08 | 16.48x slower | |
+| SQLAlchemy | 11637.68 | 43.10x slower | |
 
-**Generating Update Query 100,000x times**
-```python
-# RapidQuery
-query = rq.Update().table("wallets").values(amount=rq.Expr.col("amount") + 10).where(rq.Expr.col("id").between(10, 30))
+---
 
-query.to_sql('postgresql')
+**📊 DELETE Query Benchmark**
 
-# PyPika
-query = pypika.Query.update("wallets").set("amount", pypika.Field("amount") + 10) \
-        .where(pypika.Field("id").between(10, 30))
-
-str(query)
-```
-
-```
-RapidQuery: 252ms
-PyPika: 4412ms
-```
-
-**Generating Delete Query 100,000x times**
-```python
-# RapidQuery
-query = rq.Delete().from_table("users") \
-        .where(
-            rq.all(
-                rq.Expr.col("id") > 10,
-                rq.Expr.col("id") < 30,
-            )
-        ) \
-        .limit(10)
-
-query.to_sql('postgresql')
-
-# PyPika
-query = pypika.Query.from_("users") \
-        .where((pypika.Field("id") > 10) & (pypika.Field("id") < 30)) \
-        .limit(10).delete()
-
-str(query)
-```
-
-```
-RapidQuery: 240ms
-PyPika: 4556ms
-```
+| Library | Time (ms) | vs Fastest | Status |
+|---------|-----------|------------|--------|
+| RapidQuery | 242.09 | 1.00x (FASTEST) | 🏆 |
+| PyPika | 4154.24 | 17.16x slower | |
+| SQLAlchemy | 7873.16 | 32.52x slower | |
 
 #### Performance Tips
 - Using [`ORM-like`](#orm-like) is always slower than using `Expr.col` and literal `str`

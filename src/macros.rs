@@ -36,7 +36,7 @@ pub unsafe fn get_type_name<'a>(py: pyo3::Python<'a>, obj: *mut pyo3::ffi::PyObj
 #[macro_export]
 macro_rules! typeerror {
     (
-        $message:expr,
+        $message:expr $(,)?
     ) => {
         pyo3::PyErr::new::<pyo3::exceptions::PyTypeError, _>($message)
     };
@@ -100,7 +100,7 @@ macro_rules! build_query_parts {
         let values = {
             values
                 .into_iter()
-                .map(|x| $crate::adaptation::SerializedValue::from(x))
+                .map(|x| $crate::adaptation::RustValue::from(x))
                 .map(|x| $crate::adaptation::ReturnableValue::from(x))
                 .map(|x| $crate::adaptation::PyAdaptedValue::from(x))
         };

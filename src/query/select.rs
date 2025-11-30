@@ -1,34 +1,58 @@
 use crate::backend::PyQueryStatement;
 use pyo3::types::PyTupleMethods;
+use pyo3::PyTypeInfo;
 use sea_query::IntoIden;
 
-#[pyo3::pyclass(module = "rapidquery._lib", name = "SelectExpr", frozen)]
-pub struct PySelectExpr {
+#[pyo3::pyclass(module = "rapidquery._lib", name = "SelectCol", frozen)]
+pub struct PySelectCol {
     // Always is `PyExpr`
     pub expr: pyo3::Py<pyo3::PyAny>,
 
     // Always is `PyExpr`
     pub alias: Option<String>,
-    // TODO
-    // pub window: pyo3::Py<pyo3::PyAny>,
+
+    // Always is `PyWindow | PyString`
+    pub window: Option<pyo3::Py<pyo3::PyAny>>,
 }
 
-impl PySelectExpr {
+impl PySelectCol {
     pub fn clone_ref(&self, py: pyo3::Python) -> Self {
         Self {
             expr: self.expr.clone_ref(py),
+            window: self.window.as_ref().map(|x| x.clone_ref(py)),
             alias: self.alias.clone(),
         }
     }
 
-    pub fn as_select_expr(&self, py: pyo3::Python) -> sea_query::SelectExpr {
+    pub fn as_statement(&self, py: pyo3::Python) -> sea_query::SelectExpr {
         let expr = unsafe { self.expr.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
         let expr = expr.get().inner.clone();
 
-        sea_query::SelectExpr {
-            expr,
-            alias: self.alias.as_ref().map(|x| sea_query::Alias::new(x).into_iden()),
-            window: None,
+        if let Some(window_ref) = &self.window {
+            let window_type = unsafe {
+                if pyo3::ffi::PyUnicode_CheckExact(window_ref.as_ptr()) == 1 {
+                    sea_query::WindowSelectType::Name(
+                        sea_query::Alias::new(window_ref.extract::<String>(py).unwrap_unchecked())
+                            .into_iden(),
+                    )
+                } else {
+                    let py_window = window_ref.cast_bound_unchecked::<super::window::PyWindow>(py);
+                    let stmt = py_window.get().inner.lock();
+                    sea_query::WindowSelectType::Query(stmt.as_statement(py))
+                }
+            };
+
+            sea_query::SelectExpr {
+                expr,
+                alias: self.alias.as_ref().map(|x| sea_query::Alias::new(x).into_iden()),
+                window: Some(window_type),
+            }
+        } else {
+            sea_query::SelectExpr {
+                expr,
+                alias: self.alias.as_ref().map(|x| sea_query::Alias::new(x).into_iden()),
+                window: None,
+            }
         }
     }
 
@@ -44,17 +68,22 @@ impl PySelectExpr {
                 let slf = Self {
                     expr: bound.clone().unbind(),
                     alias: None,
+                    window: None,
                 };
 
                 return pyo3::Py::new(bound.py(), slf).map(|x| x.into_any());
             }
 
-            if PySelectExpr::is_exact_type_of(bound) {
+            if PySelectCol::is_exact_type_of(bound) {
                 return Ok(bound.clone().unbind());
             }
 
             let expr = crate::expression::PyExpr::from_bound_into_any(bound.clone())?;
-            let slf = Self { expr, alias: None };
+            let slf = Self {
+                expr,
+                alias: None,
+                window: None,
+            };
 
             pyo3::Py::new(bound.py(), slf).map(|x| x.into_any())
         }
@@ -62,19 +91,28 @@ impl PySelectExpr {
 }
 
 #[pyo3::pymethods]
-impl PySelectExpr {
+impl PySelectCol {
     #[new]
-    #[pyo3(signature=(expr, alias=None))]
-    fn new(expr: &pyo3::Bound<'_, pyo3::PyAny>, alias: Option<String>) -> pyo3::PyResult<pyo3::Py<Self>> {
+    #[pyo3(signature=(expr, alias=None, window=None))]
+    fn new(
+        expr: &pyo3::Bound<'_, pyo3::PyAny>,
+        alias: Option<String>,
+        window: Option<pyo3::Bound<'_, pyo3::PyAny>>,
+    ) -> pyo3::PyResult<pyo3::Py<Self>> {
         use pyo3::PyTypeInfo;
 
-        if PySelectExpr::is_exact_type_of(expr) {
+        if PySelectCol::is_exact_type_of(expr) {
             let slf = unsafe { expr.clone().cast_into_unchecked::<Self>() };
 
             if let Some(x) = alias {
                 let expr = slf.get().expr.clone_ref(slf.py());
+                let window = slf.get().window.as_ref().map(|x| x.clone_ref(slf.py()));
 
-                let new_slf = Self { expr, alias: Some(x) };
+                let new_slf = Self {
+                    expr,
+                    alias: Some(x),
+                    window,
+                };
                 Ok(pyo3::Py::new(slf.py(), new_slf).unwrap())
             } else {
                 Ok(slf.unbind())
@@ -82,15 +120,48 @@ impl PySelectExpr {
         } else {
             let py = expr.py();
             let expr = crate::expression::PyExpr::from_bound_into_any(expr.clone())?;
-            let slf = Self { expr, alias };
 
+            if let Some(window_ref) = &window {
+                unsafe {
+                    if pyo3::ffi::PyUnicode_CheckExact(window_ref.as_ptr()) == 0
+                        && !super::window::PyWindow::is_exact_type_of(window_ref)
+                    {
+                        return Err(typeerror!(
+                            "expected Window or str, got {:?}",
+                            py,
+                            window_ref.as_ptr()
+                        ));
+                    }
+                }
+            }
+
+            let slf = Self {
+                expr,
+                alias,
+                window: window.map(|x| x.unbind()),
+            };
             Ok(pyo3::Py::new(py, slf).unwrap())
         }
+    }
+
+    #[getter]
+    fn expr(&self, py: pyo3::Python) -> pyo3::Py<pyo3::PyAny> {
+        self.expr.clone_ref(py)
+    }
+
+    #[getter]
+    fn alias(&self) -> Option<String> {
+        self.alias.clone()
+    }
+
+    #[getter]
+    fn window(&self, py: pyo3::Python) -> Option<pyo3::Py<pyo3::PyAny>> {
+        self.window.as_ref().map(|x| x.clone_ref(py))
     }
 }
 
 #[derive(Debug, Default)]
-pub enum SelectDistinct {
+pub enum DistinctMode {
     #[default]
     None,
     Distinct,
@@ -100,7 +171,7 @@ pub enum SelectDistinct {
     ),
 }
 
-pub struct SelectLock {
+pub struct LockOptions {
     pub r#type: sea_query::LockType,
     pub behavior: Option<sea_query::LockBehavior>,
 
@@ -108,7 +179,7 @@ pub struct SelectLock {
     pub tables: Vec<pyo3::Py<pyo3::PyAny>>,
 }
 
-pub struct SelectJoin {
+pub struct JoinOptions {
     pub r#type: sea_query::JoinType,
 
     // Always is `TableName | PySelect`
@@ -119,7 +190,7 @@ pub struct SelectJoin {
     pub lateral: Option<String>,
 }
 
-pub enum SelectTable {
+pub enum SelectReference {
     SubQuery(
         // Always is `PySelect`
         pyo3::Py<pyo3::PyAny>,
@@ -139,14 +210,13 @@ pub enum SelectTable {
 #[derive(Default)]
 pub struct SelectInner {
     // TODO: support from_values
-    pub tables: Vec<SelectTable>,
+    pub tables: Vec<SelectReference>,
 
-    // TODO: support subqueries
     // Always is `Option<SelectExpr>`
     pub cols: Vec<pyo3::Py<pyo3::PyAny>>,
 
-    // Always is `Option<PyExpr>`
-    pub r#where: Option<pyo3::Py<pyo3::PyAny>>,
+    // Always is `Vec<PyExpr>`
+    pub r#where: Vec<pyo3::Py<pyo3::PyAny>>,
 
     // Always is `Vec<PyExpr>`
     pub groups: Vec<pyo3::Py<pyo3::PyAny>>,
@@ -158,14 +228,14 @@ pub struct SelectInner {
     pub having: Option<pyo3::Py<pyo3::PyAny>>,
 
     pub orders: Vec<super::order::OrderClause>,
-
-    pub distinct: SelectDistinct,
-    pub join: Vec<SelectJoin>,
-    pub lock: Option<SelectLock>,
+    pub distinct: DistinctMode,
+    pub join: Vec<JoinOptions>,
+    pub lock: Option<LockOptions>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
+    pub window: Option<(String, pyo3::Py<pyo3::PyAny>)>,
+
     // TODO
-    // pub window: Option<pyo3::Py<pyo3::PyAny>>,
     // pub with: Option<pyo3::Py<pyo3::PyAny>>,
     // pub table_sample: Option<pyo3::Py<pyo3::PyAny>>,
     // pub index_hint: Option<pyo3::Py<pyo3::PyAny>>,
@@ -177,11 +247,11 @@ impl SelectInner {
         let mut stmt = sea_query::SelectStatement::new();
 
         match &self.distinct {
-            SelectDistinct::None => (),
-            SelectDistinct::Distinct => {
+            DistinctMode::None => (),
+            DistinctMode::Distinct => {
                 stmt.distinct();
             }
-            SelectDistinct::DistinctOn(cols) => {
+            DistinctMode::DistinctOn(cols) => {
                 use sea_query::IntoColumnRef;
 
                 stmt.distinct_on(cols.iter().map(|col| unsafe {
@@ -198,15 +268,15 @@ impl SelectInner {
 
         for table in self.tables.iter() {
             match table {
-                SelectTable::TableName(x) => unsafe {
+                SelectReference::TableName(x) => unsafe {
                     let x = unsafe { x.cast_bound_unchecked::<crate::common::PyTableName>(py) };
                     stmt.from(x.get().clone());
                 },
-                SelectTable::FunctionCall(x, alias) => unsafe {
+                SelectReference::FunctionCall(x, alias) => unsafe {
                     let x = unsafe { x.cast_bound_unchecked::<crate::expression::PyFunctionCall>(py) };
                     stmt.from_function(x.get().inner.lock().clone(), sea_query::Alias::new(alias));
                 },
-                SelectTable::SubQuery(x, alias) => unsafe {
+                SelectReference::SubQuery(x, alias) => unsafe {
                     let x = unsafe { x.cast_bound_unchecked::<PySelect>(py) };
                     let inner = x.get().inner.lock();
 
@@ -217,8 +287,8 @@ impl SelectInner {
 
         if !self.cols.is_empty() {
             stmt.exprs(self.cols.iter().map(|x| unsafe {
-                let expr = x.cast_bound_unchecked::<PySelectExpr>(py);
-                expr.get().as_select_expr(py)
+                let expr = x.cast_bound_unchecked::<PySelectCol>(py);
+                expr.get().as_statement(py)
             }));
         }
 
@@ -229,7 +299,7 @@ impl SelectInner {
             }));
         }
 
-        if let Some(x) = &self.r#where {
+        for x in &self.r#where {
             let x = unsafe { x.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
             stmt.and_where(x.get().inner.clone());
         }
@@ -315,6 +385,13 @@ impl SelectInner {
             }
         }
 
+        if let Some((window_name, window)) = &self.window {
+            let window = unsafe { window.cast_bound_unchecked::<super::window::PyWindow>(py) };
+            let lock = window.get().inner.lock();
+
+            stmt.window(sea_query::Alias::new(window_name), lock.as_statement(py));
+        }
+
         stmt
     }
 }
@@ -332,7 +409,7 @@ impl PySelect {
         let mut exprs = Vec::with_capacity(PyTupleMethods::len(cols));
 
         for expr in PyTupleMethods::iter(cols) {
-            exprs.push(PySelectExpr::from_bound_into_any(&expr)?);
+            exprs.push(PySelectCol::from_bound_into_any(&expr)?);
         }
 
         let slf = Self {
@@ -352,7 +429,7 @@ impl PySelect {
     ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
         if PyTupleMethods::is_empty(on) {
             let mut lock = slf.inner.lock();
-            lock.distinct = SelectDistinct::Distinct;
+            lock.distinct = DistinctMode::Distinct;
         } else {
             let mut cols = Vec::with_capacity(PyTupleMethods::len(on));
 
@@ -383,7 +460,7 @@ impl PySelect {
             }
 
             let mut lock = slf.inner.lock();
-            lock.distinct = SelectDistinct::DistinctOn(cols);
+            lock.distinct = DistinctMode::DistinctOn(cols);
         }
 
         Ok(slf)
@@ -397,7 +474,7 @@ impl PySelect {
         let mut exprs = Vec::with_capacity(PyTupleMethods::len(cols));
 
         for expr in PyTupleMethods::iter(cols) {
-            exprs.push(PySelectExpr::from_bound_into_any(&expr)?);
+            exprs.push(PySelectCol::from_bound_into_any(&expr)?);
         }
 
         {
@@ -426,7 +503,7 @@ impl PySelect {
 
         {
             let mut lock = slf.inner.lock();
-            lock.tables.push(SelectTable::TableName(table));
+            lock.tables.push(SelectReference::TableName(table));
         }
 
         Ok(slf)
@@ -460,7 +537,7 @@ impl PySelect {
 
         {
             let mut lock = slf.inner.lock();
-            lock.tables.push(SelectTable::SubQuery(subquery, alias));
+            lock.tables.push(SelectReference::SubQuery(subquery, alias));
         }
 
         Ok(slf)
@@ -487,7 +564,7 @@ impl PySelect {
 
         {
             let mut lock = slf.inner.lock();
-            lock.tables.push(SelectTable::FunctionCall(function, alias));
+            lock.tables.push(SelectReference::FunctionCall(function, alias));
         }
 
         Ok(slf)
@@ -519,7 +596,7 @@ impl PySelect {
 
         {
             let mut lock = slf.inner.lock();
-            lock.r#where = Some(condition);
+            lock.r#where.push(condition);
         }
 
         Ok(slf)
@@ -609,7 +686,7 @@ impl PySelect {
 
         {
             let mut lock = slf.inner.lock();
-            lock.lock = Some(SelectLock {
+            lock.lock = Some(LockOptions {
                 r#type,
                 behavior,
                 tables: tbs,
@@ -728,7 +805,7 @@ impl PySelect {
 
         let expr = crate::expression::PyExpr::from_bound_into_any(on.clone())?;
 
-        let join_expr = SelectJoin {
+        let join_expr = JoinOptions {
             r#type,
             table,
             on: expr,
@@ -785,7 +862,7 @@ impl PySelect {
 
         let expr = crate::expression::PyExpr::from_bound_into_any(on.clone())?;
 
-        let join_expr = SelectJoin {
+        let join_expr = JoinOptions {
             r#type,
             table: query.clone().unbind(),
             on: expr,
@@ -795,6 +872,28 @@ impl PySelect {
         {
             let mut lock = slf.inner.lock();
             lock.join.push(join_expr);
+        }
+
+        Ok(slf)
+    }
+
+    #[pyo3(signature=(name, statement))]
+    fn window<'a>(
+        slf: pyo3::PyRef<'a, Self>,
+        name: String,
+        statement: &'a pyo3::Bound<'a, pyo3::PyAny>,
+    ) -> pyo3::PyResult<pyo3::PyRef<'a, Self>> {
+        if !super::window::PyWindow::is_exact_type_of(statement) {
+            return Err(typeerror!(
+                "expected Window, got {:?}",
+                slf.py(),
+                statement.as_ptr()
+            ));
+        }
+
+        {
+            let mut lock = slf.inner.lock();
+            lock.window = Some((name, statement.clone().unbind()));
         }
 
         Ok(slf)

@@ -7,8 +7,8 @@ pub struct DeleteInner {
     // Always is `Option<TableName>`
     pub table: Option<pyo3::Py<pyo3::PyAny>>,
 
-    // Always is `Option<PyExpr>`
-    pub r#where: Option<pyo3::Py<pyo3::PyAny>>,
+    // Always is `Vec<PyExpr>`
+    pub r#where: Vec<pyo3::Py<pyo3::PyAny>>,
     pub limit: Option<u64>,
     pub returning_clause: super::returning::ReturningClause,
     pub orders: Vec<super::order::OrderClause>,
@@ -25,7 +25,7 @@ impl DeleteInner {
             stmt.from_table(x.get().clone());
         }
 
-        if let Some(x) = &self.r#where {
+        for x in &self.r#where {
             let x = unsafe { x.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
             stmt.and_where(x.get().inner.clone());
         }
@@ -159,7 +159,7 @@ impl PyDelete {
 
         {
             let mut lock = slf.inner.lock();
-            lock.r#where = Some(condition);
+            lock.r#where.push(condition);
         }
 
         Ok(slf)
@@ -215,8 +215,16 @@ impl PyDelete {
         if let Some(x) = lock.limit {
             write!(s, " limit={x}").unwrap();
         }
-        if let Some(x) = &lock.r#where {
-            write!(s, " where={x}").unwrap();
+
+        write!(s, " where=[").unwrap();
+
+        let n = lock.r#where.len();
+        for (index, expr) in lock.r#where.iter().enumerate() {
+            if index + 1 == n {
+                write!(s, "{expr}]").unwrap();
+            } else {
+                write!(s, "{expr}, ").unwrap();
+            }
         }
 
         write!(s, " orders=[").unwrap();

@@ -13,8 +13,8 @@ pub struct UpdateInner {
     // Always is `Vec<String, PyExpr>`
     pub values: Vec<(String, pyo3::Py<pyo3::PyAny>)>,
 
-    // Always is `Option<PyExpr>`
-    pub r#where: Option<pyo3::Py<pyo3::PyAny>>,
+    // Always is `Vec<PyExpr>`
+    pub r#where: Vec<pyo3::Py<pyo3::PyAny>>,
     pub limit: Option<u64>,
     pub orders: Vec<super::order::OrderClause>,
     pub returning_clause: super::returning::ReturningClause,
@@ -36,7 +36,7 @@ impl UpdateInner {
             stmt.from(x.get().clone());
         }
 
-        if let Some(x) = &self.r#where {
+        for x in &self.r#where {
             let x = unsafe { x.cast_bound_unchecked::<crate::expression::PyExpr>(py) };
             stmt.and_where(x.get().inner.clone());
         }
@@ -197,7 +197,7 @@ impl PyUpdate {
 
         {
             let mut lock = slf.inner.lock();
-            lock.r#where = Some(condition);
+            lock.r#where.push(condition);
         }
 
         Ok(slf)
@@ -283,8 +283,16 @@ impl PyUpdate {
         if let Some(x) = lock.limit {
             write!(s, " limit={x}").unwrap();
         }
-        if let Some(x) = &lock.r#where {
-            write!(s, " where={x}").unwrap();
+
+        write!(s, " where=[").unwrap();
+
+        let n = lock.r#where.len();
+        for (index, expr) in lock.r#where.iter().enumerate() {
+            if index + 1 == n {
+                write!(s, "{expr}]").unwrap();
+            } else {
+                write!(s, "{expr}, ").unwrap();
+            }
         }
 
         write!(s, " orders=[").unwrap();

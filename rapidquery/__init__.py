@@ -1,12 +1,3 @@
-"""
-**RapidQuery: High-Performance SQL Query Builder for Python**
-
-RapidQuery is a powerful SQL query builder library designed for Python, combining
-the simplicity of Python with the raw speed and safety of **Rust**. Build complex
-SQL queries effortlessly and efficiently, with a library that prioritizes both
-performance and ease of use.
-"""
-
 from ._lib import ASTERISK as ASTERISK
 from ._lib import AdaptedValue as AdaptedValue
 from ._lib import AliasedTable as AliasedTable
@@ -25,6 +16,7 @@ from ._lib import BinaryType as BinaryType
 from ._lib import BitType as BitType
 from ._lib import BlobType as BlobType
 from ._lib import BooleanType as BooleanType
+from ._lib import Case as Case
 from ._lib import CharType as CharType
 from ._lib import CidrType as CidrType
 from ._lib import Column as Column
@@ -71,7 +63,7 @@ from ._lib import QueryStatement as QueryStatement
 from ._lib import RenameTable as RenameTable
 from ._lib import SchemaStatement as SchemaStatement
 from ._lib import Select as Select
-from ._lib import SelectExpr as SelectExpr
+from ._lib import SelectCol as SelectCol
 from ._lib import SmallIntegerType as SmallIntegerType
 from ._lib import SmallUnsignedType as SmallUnsignedType
 from ._lib import StringType as StringType
@@ -90,10 +82,9 @@ from ._lib import UuidType as UuidType
 from ._lib import VarBinaryType as VarBinaryType
 from ._lib import VarBitType as VarBitType
 from ._lib import VectorType as VectorType
+from ._lib import Window as Window
+from ._lib import WindowFrame as WindowFrame
 from ._lib import YearType as YearType
-from ._lib import _AliasedTableColumnsSequence as _AliasedTableColumnsSequence
-from ._lib import _AsteriskType as _AsteriskType
-from ._lib import _TableColumnsSequence as _TableColumnsSequence
 from ._lib import all as all
 from ._lib import any as any
 from ._lib import not_ as not_

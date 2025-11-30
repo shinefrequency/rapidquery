@@ -19,7 +19,6 @@ build-prod:
 	$(BUILD_CMD) --uv --release
 
 test:
-	cargo clippy
 	$(BUILD_CMD) --uv
 	pytest -s -vv
 	-rm -rf .pytest_cache

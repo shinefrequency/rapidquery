@@ -5,7 +5,6 @@ use pyo3::types::PyAnyMethods;
 /// A bridge between Python & [`sea_query::SimpleExpr`]
 #[pyo3::pyclass(module = "rapidquery._lib", name = "Expr", frozen)]
 pub struct PyExpr {
-    // TOD: support subquery and case
     pub(crate) inner: sea_query::SimpleExpr,
 }
 
@@ -120,6 +119,12 @@ impl PyExpr {
                     None,
                     Box::new(stmt.into_sub_query_statement()),
                 )))
+            } else if type_ptr == crate::typeref::CASE_STATEMENT_TYPE {
+                let value = value.cast_into_unchecked::<crate::query::case::PyCase>();
+                let stmt = value.get().inner.lock();
+                let stmt = Box::new(stmt.as_statement(value.py()));
+
+                Ok(Self::from_simple_expr(sea_query::SimpleExpr::Case(stmt)))
             } else if pyo3::ffi::PyTuple_Check(value.as_ptr()) == 1 {
                 let value = value.cast_into_unchecked::<pyo3::types::PyTuple>();
                 let mut arr: Vec<Self> = Vec::new();
@@ -176,25 +181,6 @@ impl PyExpr {
 
             let x = value.cast_unchecked::<crate::adaptation::PyAdaptedValue>();
             Ok(Self::from_adapted_value(value.py(), x.get()))
-        }
-    }
-
-    #[classmethod]
-    fn func(
-        _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
-        value: &pyo3::Bound<'_, pyo3::PyAny>,
-    ) -> pyo3::PyResult<Self> {
-        unsafe {
-            if pyo3::ffi::Py_TYPE(value.as_ptr()) != crate::typeref::FUNCTION_CALL_TYPE {
-                return Err(typeerror!(
-                    "expected FunctionCall, got {}",
-                    value.py(),
-                    value.as_ptr()
-                ));
-            }
-
-            let x = value.cast_unchecked::<super::function::PyFunctionCall>();
-            Ok(Self::from_function_call(x.get()))
         }
     }
 
@@ -458,6 +444,10 @@ impl PyExpr {
     fn __and__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::and(slf.inner.clone(), other.inner).into())
+    }
+
+    fn __neg__<'a>(slf: pyo3::PyRef<'a, Self>) -> pyo3::PyResult<Self> {
+        Ok(sea_query::ExprTrait::mul(slf.inner.clone(), -1).into())
     }
 
     fn __or__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {

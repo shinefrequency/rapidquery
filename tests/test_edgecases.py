@@ -541,3 +541,46 @@ class TestIntervalType:
         """Interval with negative precision (invalid)."""
         with pytest.raises(OverflowError):
             _lib.IntervalType(precision=-1)
+
+
+class TestWhereChaining:
+    def test_select(self):
+        query = (
+            _lib.Select(_lib.ASTERISK)
+            .from_table("users")
+            .where(_lib.Expr.col("id") > 10)
+            .where(_lib.Expr.col("id") < 20)
+        )
+
+        assert "AND" in query.to_sql("postgresql")
+
+    def test_delete(self):
+        query = (
+            _lib.Delete()
+            .from_table("users")
+            .where(_lib.Expr.col("id") > 10)
+            .where(_lib.Expr.col("id") < 20)
+        )
+
+        assert "AND" in query.to_sql("postgresql")
+
+    def test_update(self):
+        query = (
+            _lib.Update()
+            .table("users")
+            .where(_lib.Expr.col("id") > 10)
+            .where(_lib.Expr.col("id") < 20)
+        )
+
+        assert "AND" in query.to_sql("postgresql")
+
+
+class TestCase:
+    def test_to_expr(self):
+        query = (
+            _lib.Case()
+            .when(_lib.Case().when(_lib.Expr.col("id") == 1, True).else_(False), True)
+            .else_(False)
+        )
+
+        assert query.to_expr().to_sql("postgresql").count("CASE") == 2

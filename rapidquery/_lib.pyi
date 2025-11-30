@@ -72,25 +72,12 @@ class ColumnTypeMeta(typing.Generic[T]):
     def __repr__(self) -> str: ...
 
 class _LengthColumnType(ColumnTypeMeta[T]):
-    """
-    Base class for column types that have a length parameter.
-
-    This is an internal base class for column types like CHAR, VARCHAR,
-    BINARY, and VARBINARY that specify a maximum length constraint.
-    """
-
     length: typing.Optional[int]
     """The maximum length constraint for this column type."""
 
     def __new__(cls, length: typing.Optional[int] = ...) -> Self: ...
 
 class _PrecisionScaleColumnType(ColumnTypeMeta[T]):
-    """
-    Base class for numeric column types with precision and scale parameters.
-
-    This is an internal base class for numeric types like DECIMAL and NUMERIC
-    that require both precision (total digits) and scale (decimal places) specification.
-    """
     def __new__(cls, precision_scale: typing.Optional[typing.Tuple[int, int]] = ...) -> Self: ...
     @property
     def precision_scale(self) -> typing.Optional[typing.Tuple[int, int]]:
@@ -577,6 +564,8 @@ class AdaptedValue(typing.Generic[T]):
             AdaptedValue("127.0.0.1", Inet())    # -> INET SQL type (network address)
             AdaptedValue([4.3, 5.6], Vector())   # -> VECTOR SQL type (for AI embeddings)
 
+        Possible exceptions are `TypeError`, `ValueError`, and `OverflowError`.
+
         NOTE: this class is immutable and frozen.
         """
         ...
@@ -664,16 +653,6 @@ class ColumnRef:
 
     This class is used to uniquely identify columns in SQL queries, supporting
     schema-qualified and table-qualified column references.
-
-    Attributes:
-        name: The column name
-        table: The table name containing the column, if specified
-        schema: The schema name containing the table, if specified
-
-    Example:
-        >>> ColumnRef("id")
-        >>> ColumnRef("id", table="users")
-        >>> ColumnRef("id", table="users", schema="public")
     """
 
     def __new__(
@@ -756,6 +735,8 @@ _ExprValue = typing.Union[
     _AsteriskType,
     typing.Any,
     Select,
+    Case,
+    FunctionCall,
 ]
 
 class Expr:
@@ -770,6 +751,7 @@ class Expr:
     when building the final SQL statement.
 
     Example::
+
         # Basic comparison
         e = Expr(1) > 2
         e.to_sql("mysql")
@@ -812,19 +794,6 @@ class Expr:
 
         Returns:
             An Expr representing the adapted value
-        """
-        ...
-
-    @classmethod
-    def func(cls, value: FunctionCall) -> Self:
-        """
-        Create an expression from a FunctionCall.
-
-        Args:
-            value: The function call to convert to an expression
-
-        Returns:
-            An Expr representing the function call
         """
         ...
 
@@ -1015,6 +984,7 @@ class Expr:
         """
         ...
 
+    def __neq__(self) -> Self: ...
     def __sub__(self, other: _ExprValue) -> Self:
         """
         Create a subtraction expression.
@@ -1583,6 +1553,27 @@ class FunctionCall:
         ...
 
     @classmethod
+    def rank(cls) -> Self:
+        """
+        Create a RANK function call.
+        """
+        ...
+
+    @classmethod
+    def dense_rank(cls) -> Self:
+        """
+        Create a DENSE_RANK function call.
+        """
+        ...
+
+    @classmethod
+    def percent_rank(cls) -> Self:
+        """
+        Create a PERCENT_RANK function call.
+        """
+        ...
+
+    @classmethod
     def round(cls, expr: _ExprValue) -> Self:
         """
         Create a ROUND function call.
@@ -1653,6 +1644,7 @@ def all(arg1: Expr, *args: Expr) -> Expr:
         An Expr representing the logical AND of all input expressions
 
     Example:
+
         >>> all(Expr.col("age") > 18, Expr.col("status") == "active")
         # Equivalent to: age > 18 AND status = 'active'
     """
@@ -1672,6 +1664,7 @@ def any(arg1: Expr, *args: Expr) -> Expr:
         An Expr representing the logical OR of all input expressions
 
     Example:
+
         >>> any(Expr.col("status") == "pending", Expr.col("status") == "approved")
         # Equivalent to: status = 'pending' OR status = 'approved'
     """
@@ -1682,7 +1675,8 @@ def not_(arg1: Expr) -> Expr:
     Create a logical NOT.
 
     Example:
-        >>> not_(Expr.col("status") == "pending", Expr.col("status"))
+
+        >>> not_(Expr.col("status") == "pending")
         # Equivalent to: NOT status = 'pending'
     """
     ...
@@ -1702,7 +1696,8 @@ class Column(typing.Generic[T]):
     of table columns. It encapsulates all the properties that define how
     a column behaves and what data it can store.
 
-    Example:
+    Example::
+
         >>> Column("id", Integer(), primary_key=True, auto_increment=True)
         >>> Column("name", String(255), nullable=False, default="unknown")
         >>> Column("created_at", Timestamp(), default=Expr.current_timestamp())
@@ -1838,7 +1833,8 @@ class TableName:
     The class provides parsing capabilities for string representations
     and supports comparison operations.
 
-    Examples:
+    Examples::
+
         >>> TableName("users")                           # Simple table name
         >>> TableName("users", schema="public")          # Schema-qualified table
         >>> TableName("users", schema="hr", database="company")  # Fully qualified
@@ -2277,7 +2273,7 @@ class _TableColumnsSequence:
     def __getattr__(self, name: str) -> Column: ...
     def get(self, name: str) -> Column: ...
     def append(self, col: Column) -> None: ...
-    def remove(self, name: str) -> None: ...
+    def remove(self, name: str) -> Column: ...
     def to_list(self) -> typing.Sequence[Column]: ...
     def clear(self) -> None: ...
     def __len__(self) -> int: ...
@@ -3250,7 +3246,35 @@ class Update(QueryStatement):
 
     def __repr__(self) -> str: ...
 
-class SelectExpr:
+class WindowFrame:
+    @classmethod
+    def unbounded_preceding(cls) -> Self: ...
+    @classmethod
+    def unbounded_following(cls) -> Self: ...
+    @classmethod
+    def current_row(cls) -> Self: ...
+    @classmethod
+    def preceding(cls, val: int) -> Self: ...
+    @classmethod
+    def following(cls, val: int) -> Self: ...
+
+class Window:
+    def __new__(cls, *partition_by: Expr) -> Self: ...
+    def partition(self, *partition_by: Expr) -> Self: ...
+    def order_by(
+        self,
+        target: _ExprValue,
+        order: typing.Literal["asc", "desc"],
+        null_order: typing.Optional[typing.Literal["first", "last"]] = ...,
+    ) -> Self: ...
+    def frame(
+        self,
+        type: typing.Literal["rows", "range"],
+        start: WindowFrame,
+        end: typing.Optional[WindowFrame] = None,
+    ) -> Self: ...
+
+class SelectCol:
     """
     Represents a column expression with an optional alias in a SELECT clause.
 
@@ -3258,20 +3282,26 @@ class SelectExpr:
     for the result column.
 
     Example:
-        >>> SelectExpr(Expr.col("price") * 1.1, "price_with_tax")
-        >>> SelectExpr(Expr.count(), "total_count")
+
+        >>> SelectCol(Expr.col("price") * 1.1, "price_with_tax")
+        >>> SelectCol(Expr.count(), "total_count")
     """
 
-    def __new__(cls, expr: _ExprValue, alias: typing.Optional[str] = ...):
+    def __new__(
+        cls,
+        expr: _ExprValue,
+        alias: typing.Optional[str] = ...,
+        window: typing.Union[str, Window, None] = ...,
+    ):
         """
-        Create a new SelectExpr.
+        Create a new SelectCol.
 
         Args:
             expr: The expression to select
             alias: Optional alias name for the result column
 
         Returns:
-            A new SelectExpr instance
+            A new SelectCol instance
         """
         ...
 
@@ -3285,6 +3315,8 @@ class SelectExpr:
         """The alias name for the result column, if any."""
         ...
 
+    @property
+    def window(self) -> typing.Union[str, Window, None]: ...
     def __repr__(self) -> str: ...
 
 class Select(QueryStatement):
@@ -3303,6 +3335,7 @@ class Select(QueryStatement):
     - DISTINCT queries
 
     Example:
+    
         >>> Select(Expr.col("name"), Expr.col("email")).from_table("users") \\
         ...     .where(Expr.col("active") == True) \\
         ...     .order_by(Order(Expr.col("created_at"), ORDER_DESC)) \\
@@ -3312,12 +3345,12 @@ class Select(QueryStatement):
         ...     .where(Expr.col("published") == True)
     """
 
-    def __new__(cls, *cols: typing.Union[SelectExpr, _ExprValue]) -> Self:
+    def __new__(cls, *cols: typing.Union[SelectCol, _ExprValue]) -> Self:
         """
         Create a new SELECT statement builder.
 
         Args:
-            *cols: Optional initial columns to select (expressions or SelectExpr objects)
+            *cols: Optional initial columns to select (expressions or SelectCol objects)
 
         Returns:
             A new Select instance
@@ -3336,12 +3369,12 @@ class Select(QueryStatement):
         """
         ...
 
-    def columns(self, *cols: typing.Union[SelectExpr, _ExprValue]) -> Self:
+    def columns(self, *cols: typing.Union[SelectCol, _ExprValue]) -> Self:
         """
         Specify or add columns to select.
 
         Args:
-            *cols: Column names, expressions, or SelectExpr objects to select
+            *cols: Column names, expressions, or SelectCol objects to select
 
         Returns:
             Self for method chaining
@@ -3556,4 +3589,12 @@ class Select(QueryStatement):
         """
         ...
 
+    def window(self, name: str, statement: Window) -> Self: ...
+    def __repr__(self) -> str: ...
+
+class Case:
+    def __new__(cls) -> Self: ...
+    def when(self, cond: _ExprValue, then: _ExprValue) -> Self: ...
+    def else_(self, expr: _ExprValue) -> Self: ...
+    def to_expr(self) -> Expr: ...
     def __repr__(self) -> str: ...

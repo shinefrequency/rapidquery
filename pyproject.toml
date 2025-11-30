@@ -34,7 +34,6 @@ dynamic = [
     'readme',
     'version'
 ]
-dependencies = []
 
 [project.urls]
 Homepage = 'https://github.com/awolverp/rapidquery'

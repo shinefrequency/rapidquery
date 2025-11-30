@@ -259,6 +259,27 @@ impl PyFunctionCall {
     }
 
     #[classmethod]
+    fn rank(_cls: &pyo3::Bound<'_, pyo3::types::PyType>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::cust("RANK")),
+        }
+    }
+
+    #[classmethod]
+    fn dense_rank(_cls: &pyo3::Bound<'_, pyo3::types::PyType>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::cust("DENSE_RANK")),
+        }
+    }
+
+    #[classmethod]
+    fn percent_rank(_cls: &pyo3::Bound<'_, pyo3::types::PyType>) -> Self {
+        Self {
+            inner: parking_lot::Mutex::new(sea_query::Func::cust("PERCENT_RANK")),
+        }
+    }
+
+    #[classmethod]
     fn round(
         _cls: &pyo3::Bound<'_, pyo3::types::PyType>,
         expr: pyo3::Bound<'_, pyo3::PyAny>,
