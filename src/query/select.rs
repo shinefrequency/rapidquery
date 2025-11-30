@@ -124,7 +124,7 @@ impl PySelectCol {
             if let Some(window_ref) = &window {
                 unsafe {
                     if pyo3::ffi::PyUnicode_CheckExact(window_ref.as_ptr()) == 0
-                        && super::window::PyWindow::is_exact_type_of(window_ref)
+                        && !super::window::PyWindow::is_exact_type_of(window_ref)
                     {
                         return Err(typeerror!(
                             "expected Window or str, got {:?}",
@@ -233,7 +233,7 @@ pub struct SelectInner {
     pub lock: Option<LockOptions>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,
-    pub windows: Vec<(String, pyo3::Py<pyo3::PyAny>)>,
+    pub window: Option<(String, pyo3::Py<pyo3::PyAny>)>,
     // pub with: Option<pyo3::Py<pyo3::PyAny>>,
     // pub table_sample: Option<pyo3::Py<pyo3::PyAny>>,
     // pub index_hint: Option<pyo3::Py<pyo3::PyAny>>,
@@ -383,7 +383,7 @@ impl SelectInner {
             }
         }
 
-        for (window_name, window) in &self.windows {
+        if let Some((window_name, window)) = &self.window {
             let window = unsafe { window.cast_bound_unchecked::<super::window::PyWindow>(py) };
             let lock = window.get().inner.lock();
 
@@ -891,7 +891,7 @@ impl PySelect {
 
         {
             let mut lock = slf.inner.lock();
-            lock.windows.push((name, statement.clone().unbind()));
+            lock.window = Some((name, statement.clone().unbind()));
         }
 
         Ok(slf)

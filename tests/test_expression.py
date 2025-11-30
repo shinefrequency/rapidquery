@@ -126,7 +126,7 @@ def test_input_value(case: DifferentInputCase):
     except (TypeError, ValueError, OverflowError):
         if case.error:
             return
-        
+
         raise
 
     assert expr.to_sql("postgresql").find(case.sqlcontain) > -1

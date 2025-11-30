@@ -446,6 +446,10 @@ impl PyExpr {
         Ok(sea_query::ExprTrait::and(slf.inner.clone(), other.inner).into())
     }
 
+    fn __neg__<'a>(slf: pyo3::PyRef<'a, Self>) -> pyo3::PyResult<Self> {
+        Ok(sea_query::ExprTrait::mul(slf.inner.clone(), -1).into())
+    }
+
     fn __or__<'a>(slf: pyo3::PyRef<'a, Self>, other: &pyo3::Bound<'a, pyo3::PyAny>) -> pyo3::PyResult<Self> {
         let other = Self::try_from(other.clone())?;
         Ok(sea_query::ExprTrait::or(slf.inner.clone(), other.inner).into())

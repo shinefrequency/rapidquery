@@ -984,6 +984,7 @@ class Expr:
         """
         ...
 
+    def __neq__(self) -> Self: ...
     def __sub__(self, other: _ExprValue) -> Self:
         """
         Create a subtraction expression.
@@ -1552,6 +1553,27 @@ class FunctionCall:
         ...
 
     @classmethod
+    def rank(cls) -> Self:
+        """
+        Create a RANK function call.
+        """
+        ...
+
+    @classmethod
+    def dense_rank(cls) -> Self:
+        """
+        Create a DENSE_RANK function call.
+        """
+        ...
+
+    @classmethod
+    def percent_rank(cls) -> Self:
+        """
+        Create a PERCENT_RANK function call.
+        """
+        ...
+
+    @classmethod
     def round(cls, expr: _ExprValue) -> Self:
         """
         Create a ROUND function call.
@@ -1812,7 +1834,7 @@ class TableName:
     and supports comparison operations.
 
     Examples::
-    
+
         >>> TableName("users")                           # Simple table name
         >>> TableName("users", schema="public")          # Schema-qualified table
         >>> TableName("users", schema="hr", database="company")  # Fully qualified

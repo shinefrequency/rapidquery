@@ -109,8 +109,14 @@ impl ReturnableValue {
                 ))))
             },
             sea_query::ColumnType::Float | sea_query::ColumnType::Double => unsafe {
-                if pyo3::ffi::PyFloat_CheckExact(object.as_ptr()) == 0 && pyo3::ffi::PyLong_CheckExact(object.as_ptr()) == 0 {
-                    return Err(typeerror!("expected float or int, got {}", object.py(), object.as_ptr()));
+                if pyo3::ffi::PyFloat_CheckExact(object.as_ptr()) == 0
+                    && pyo3::ffi::PyLong_CheckExact(object.as_ptr()) == 0
+                {
+                    return Err(typeerror!(
+                        "expected float or int, got {}",
+                        object.py(),
+                        object.as_ptr()
+                    ));
                 }
 
                 let val = pyo3::ffi::PyFloat_AsDouble(object.as_ptr());
@@ -143,9 +149,9 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(PythonValue::ChronoDateTime(
-                    NonNull::new_unchecked(object.into_ptr()),
-                )))
+                Ok(Self::from(PythonValue::ChronoDateTime(NonNull::new_unchecked(
+                    object.into_ptr(),
+                ))))
             },
             sea_query::ColumnType::TimestampWithTimeZone => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DATETIME_TYPE) == 0 {
@@ -156,9 +162,9 @@ impl ReturnableValue {
                     ));
                 }
 
-                Ok(Self::from(PythonValue::ChronoDateTime(
-                    NonNull::new_unchecked(object.into_ptr()),
-                )))
+                Ok(Self::from(PythonValue::ChronoDateTime(NonNull::new_unchecked(
+                    object.into_ptr(),
+                ))))
             },
             sea_query::ColumnType::Time => unsafe {
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_TIME_TYPE) == 0 {
@@ -248,7 +254,9 @@ impl ReturnableValue {
                 let list = object.cast_into_unchecked::<pyo3::types::PyList>();
 
                 for item in list.iter() {
-                    if pyo3::ffi::PyFloat_CheckExact(item.as_ptr()) == 0 && pyo3::ffi::PyLong_CheckExact(item.as_ptr()) == 0 {
+                    if pyo3::ffi::PyFloat_CheckExact(item.as_ptr()) == 0
+                        && pyo3::ffi::PyLong_CheckExact(item.as_ptr()) == 0
+                    {
                         return Err(typeerror!(
                             "expected list of floats, found an {:?} element",
                             item.py(),
@@ -314,9 +322,9 @@ impl ReturnableValue {
             }
 
             if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_DATETIME_TYPE {
-                return Ok(Self::from(PythonValue::ChronoDateTime(
-                    NonNull::new_unchecked(object.into_ptr()),
-                )));
+                return Ok(Self::from(PythonValue::ChronoDateTime(NonNull::new_unchecked(
+                    object.into_ptr(),
+                ))));
             }
 
             if pyo3::ffi::Py_TYPE(object.as_ptr()) == crate::typeref::STD_DATE_TYPE {
@@ -511,13 +519,11 @@ impl PyAdaptedValue {
     fn is_datetime(&self) -> bool {
         let lock = self.inner.lock();
 
-        matches!(
-            lock.deserialized.as_ref(),
-            Some(PythonValue::ChronoDateTime(_))
-        ) || matches!(
-            lock.serialized.as_ref(),
-            Some(RustValue::ChronoDateTime(_)) | Some(RustValue::ChronoDateTimeWithTimeZone(_))
-        )
+        matches!(lock.deserialized.as_ref(), Some(PythonValue::ChronoDateTime(_)))
+            || matches!(
+                lock.serialized.as_ref(),
+                Some(RustValue::ChronoDateTime(_)) | Some(RustValue::ChronoDateTimeWithTimeZone(_))
+            )
     }
 
     #[getter]
