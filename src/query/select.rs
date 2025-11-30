@@ -234,6 +234,8 @@ pub struct SelectInner {
     pub limit: Option<u64>,
     pub offset: Option<u64>,
     pub window: Option<(String, pyo3::Py<pyo3::PyAny>)>,
+
+    // TODO
     // pub with: Option<pyo3::Py<pyo3::PyAny>>,
     // pub table_sample: Option<pyo3::Py<pyo3::PyAny>>,
     // pub index_hint: Option<pyo3::Py<pyo3::PyAny>>,
