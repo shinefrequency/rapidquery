@@ -72,25 +72,12 @@ class ColumnTypeMeta(typing.Generic[T]):
     def __repr__(self) -> str: ...
 
 class _LengthColumnType(ColumnTypeMeta[T]):
-    """
-    Base class for column types that have a length parameter.
-
-    This is an internal base class for column types like CHAR, VARCHAR,
-    BINARY, and VARBINARY that specify a maximum length constraint.
-    """
-
     length: typing.Optional[int]
     """The maximum length constraint for this column type."""
 
     def __new__(cls, length: typing.Optional[int] = ...) -> Self: ...
 
 class _PrecisionScaleColumnType(ColumnTypeMeta[T]):
-    """
-    Base class for numeric column types with precision and scale parameters.
-
-    This is an internal base class for numeric types like DECIMAL and NUMERIC
-    that require both precision (total digits) and scale (decimal places) specification.
-    """
     def __new__(cls, precision_scale: typing.Optional[typing.Tuple[int, int]] = ...) -> Self: ...
     @property
     def precision_scale(self) -> typing.Optional[typing.Tuple[int, int]]:
@@ -577,6 +564,8 @@ class AdaptedValue(typing.Generic[T]):
             AdaptedValue("127.0.0.1", Inet())    # -> INET SQL type (network address)
             AdaptedValue([4.3, 5.6], Vector())   # -> VECTOR SQL type (for AI embeddings)
 
+        Possible exceptions are `TypeError`, `ValueError`, and `OverflowError`.
+
         NOTE: this class is immutable and frozen.
         """
         ...
@@ -664,16 +653,6 @@ class ColumnRef:
 
     This class is used to uniquely identify columns in SQL queries, supporting
     schema-qualified and table-qualified column references.
-
-    Attributes:
-        name: The column name
-        table: The table name containing the column, if specified
-        schema: The schema name containing the table, if specified
-
-    Example:
-        >>> ColumnRef("id")
-        >>> ColumnRef("id", table="users")
-        >>> ColumnRef("id", table="users", schema="public")
     """
 
     def __new__(
@@ -757,6 +736,7 @@ _ExprValue = typing.Union[
     typing.Any,
     Select,
     Case,
+    FunctionCall,
 ]
 
 class Expr:
@@ -771,6 +751,7 @@ class Expr:
     when building the final SQL statement.
 
     Example::
+
         # Basic comparison
         e = Expr(1) > 2
         e.to_sql("mysql")
@@ -1641,6 +1622,7 @@ def all(arg1: Expr, *args: Expr) -> Expr:
         An Expr representing the logical AND of all input expressions
 
     Example:
+
         >>> all(Expr.col("age") > 18, Expr.col("status") == "active")
         # Equivalent to: age > 18 AND status = 'active'
     """
@@ -1660,6 +1642,7 @@ def any(arg1: Expr, *args: Expr) -> Expr:
         An Expr representing the logical OR of all input expressions
 
     Example:
+
         >>> any(Expr.col("status") == "pending", Expr.col("status") == "approved")
         # Equivalent to: status = 'pending' OR status = 'approved'
     """
@@ -1670,7 +1653,8 @@ def not_(arg1: Expr) -> Expr:
     Create a logical NOT.
 
     Example:
-        >>> not_(Expr.col("status") == "pending", Expr.col("status"))
+
+        >>> not_(Expr.col("status") == "pending")
         # Equivalent to: NOT status = 'pending'
     """
     ...
@@ -1690,7 +1674,8 @@ class Column(typing.Generic[T]):
     of table columns. It encapsulates all the properties that define how
     a column behaves and what data it can store.
 
-    Example:
+    Example::
+
         >>> Column("id", Integer(), primary_key=True, auto_increment=True)
         >>> Column("name", String(255), nullable=False, default="unknown")
         >>> Column("created_at", Timestamp(), default=Expr.current_timestamp())
@@ -1826,7 +1811,8 @@ class TableName:
     The class provides parsing capabilities for string representations
     and supports comparison operations.
 
-    Examples:
+    Examples::
+    
         >>> TableName("users")                           # Simple table name
         >>> TableName("users", schema="public")          # Schema-qualified table
         >>> TableName("users", schema="hr", database="company")  # Fully qualified

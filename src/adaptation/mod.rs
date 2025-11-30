@@ -109,6 +109,10 @@ impl ReturnableValue {
                 ))))
             },
             sea_query::ColumnType::Float | sea_query::ColumnType::Double => unsafe {
+                if pyo3::ffi::PyFloat_CheckExact(object.as_ptr()) == 0 && pyo3::ffi::PyLong_CheckExact(object.as_ptr()) == 0 {
+                    return Err(typeerror!("expected float or int, got {}", object.py(), object.as_ptr()));
+                }
+
                 let val = pyo3::ffi::PyFloat_AsDouble(object.as_ptr());
                 if val == -1.0 && !pyo3::ffi::PyErr_Occurred().is_null() {
                     return Err(pyo3::PyErr::fetch(object.py()));
@@ -117,6 +121,7 @@ impl ReturnableValue {
                 Ok(Self::from(PythonValue::Double(val)))
             },
             sea_query::ColumnType::Decimal(_) | sea_query::ColumnType::Money(_) => unsafe {
+                // TODO: Support float
                 if pyo3::ffi::Py_IS_TYPE(object.as_ptr(), crate::typeref::STD_DECIMAL_TYPE) == 0 {
                     return Err(typeerror!(
                         "expected decimal.Decimal, got {}",
@@ -243,7 +248,7 @@ impl ReturnableValue {
                 let list = object.cast_into_unchecked::<pyo3::types::PyList>();
 
                 for item in list.iter() {
-                    if pyo3::ffi::PyFloat_CheckExact(item.as_ptr()) == 0 {
+                    if pyo3::ffi::PyFloat_CheckExact(item.as_ptr()) == 0 && pyo3::ffi::PyLong_CheckExact(item.as_ptr()) == 0 {
                         return Err(typeerror!(
                             "expected list of floats, found an {:?} element",
                             item.py(),
